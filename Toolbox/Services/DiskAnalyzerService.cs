@@ -56,8 +56,16 @@ public class DiskFolderNode
     /// <summary>百分比显示（用于饼图）</summary>
     public string PercentageDisplay => $"{Percentage:0.#}%";
 
-    /// <summary>子文件夹节点列表</summary>
-    public ObservableCollection<DiskFolderNode> Children { get; set; } = new();
+    /// <summary>子文件夹节点列表（含文件夹和文件项，用于树形展示）</summary>
+    public ObservableCollection<object> Children { get; set; } = new();
+
+    /// <summary>仅子文件夹（类型安全过滤）</summary>
+    public IEnumerable<DiskFolderNode> ChildFolders =>
+        Children.OfType<DiskFolderNode>();
+
+    /// <summary>仅文件项（类型安全过滤）</summary>
+    public IEnumerable<DiskFileItem> ChildFiles =>
+        Children.OfType<DiskFileItem>();
 
     /// <summary>是否处于展开状态（用于 TreeView）</summary>
     public bool IsExpanded { get; set; }
@@ -65,7 +73,7 @@ public class DiskFolderNode
     /// <summary>是否在受保护路径中</summary>
     public bool IsProtected { get; set; }
 
-    /// <summary>是否有子节点</summary>
+    /// <summary>是否有子节点（目录或文件）</summary>
     public bool HasChildren => Children.Count > 0;
 
     /// <summary>深度层级（0=根）</summary>
@@ -87,6 +95,18 @@ public class DiskFolderNode
         }
         return $"{size:0.##} {units[unitIndex]}";
     }
+}
+
+/// <summary>
+/// 单个文件信息 — 用于目录下大文件列表展示和右键操作
+/// </summary>
+public class DiskFileItem
+{
+    public string Name { get; set; } = "";
+    public string FullPath { get; set; } = "";
+    public long Size { get; set; }
+    public string SizeDisplay => DiskFolderNode.FormatSize(Size);
+    public string Extension => System.IO.Path.GetExtension(Name).ToLowerInvariant();
 }
 
 /// <summary>
@@ -188,10 +208,11 @@ public class DiskAnalyzerService : IDiskAnalyzerService
             long totalSize = 0;
             int fileCount = 0;
             var subDirs = new List<string>();
+            var fileList = new List<(string Path, long Size)>();
 
             try
             {
-                // 流式枚举文件
+                // 流式枚举文件（同时收集大文件列表）
                 foreach (var file in Directory.EnumerateFiles(
                     path, "*", new EnumerationOptions
                     {
@@ -209,6 +230,7 @@ public class DiskAnalyzerService : IDiskAnalyzerService
                         {
                             totalSize += fileInfo.Length;
                             fileCount++;
+                            fileList.Add((file, fileInfo.Length));
                         }
                     }
                     catch
@@ -247,6 +269,20 @@ public class DiskAnalyzerService : IDiskAnalyzerService
             catch (Exception ex)
             {
                 _log.LogWarning($"扫描目录 {path} 时出错: {ex.Message}");
+            }
+
+            // 移除旧的文件项，保留文件夹节点
+            foreach (var oldFile in node.ChildFiles.ToList())
+                node.Children.Remove(oldFile);
+            // 添加该目录下最大的20个文件用于展示
+            foreach (var (fp, sz) in fileList.OrderByDescending(f => f.Size).Take(20))
+            {
+                node.Children.Add(new DiskFileItem
+                {
+                    Name = System.IO.Path.GetFileName(fp),
+                    FullPath = fp,
+                    Size = sz
+                });
             }
 
             node.TotalSize = totalSize;
@@ -304,12 +340,9 @@ public class DiskAnalyzerService : IDiskAnalyzerService
         PostProcessTree(root, token);
     }
 
-    /// <summary>
-    /// 后处理树结构：从叶子向上累加大小，排序子节点，计算百分比，移除空目录
-    /// </summary>
     private void PostProcessTree(DiskFolderNode node, CancellationToken token)
     {
-        // 使用栈做后序遍历
+        // 使用栈做后序遍历（仅遍历文件夹节点）
         var postStack = new Stack<DiskFolderNode>();
         var resultStack = new Stack<DiskFolderNode>();
         postStack.Push(node);
@@ -320,7 +353,7 @@ public class DiskAnalyzerService : IDiskAnalyzerService
             var current = postStack.Pop();
             resultStack.Push(current);
 
-            foreach (var child in current.Children)
+            foreach (var child in current.ChildFolders)
             {
                 postStack.Push(child);
             }
@@ -332,12 +365,13 @@ public class DiskAnalyzerService : IDiskAnalyzerService
             token.ThrowIfCancellationRequested();
             var current = resultStack.Pop();
 
-            if (current.Children.Count > 0)
+            var folderChildren = current.ChildFolders.ToList();
+            if (folderChildren.Count > 0)
             {
-                // 先累加子节点的大小
+                // 累加子文件夹的大小
                 long childTotalSize = 0;
                 int childFileCount = 0;
-                foreach (var child in current.Children)
+                foreach (var child in folderChildren)
                 {
                     childTotalSize += child.TotalSize;
                     childFileCount += child.FileCount;
@@ -346,8 +380,8 @@ public class DiskAnalyzerService : IDiskAnalyzerService
                 // 合并后的总大小 = 当前目录文件 + 所有子目录
                 long mergedTotal = current.TotalSize + childTotalSize;
 
-                // 基于合并后的总大小计算百分比
-                foreach (var child in current.Children)
+                // 计算子文件夹的百分比
+                foreach (var child in folderChildren)
                 {
                     child.Percentage = mergedTotal > 0
                         ? (double)child.TotalSize / mergedTotal * 100
@@ -357,22 +391,22 @@ public class DiskAnalyzerService : IDiskAnalyzerService
                 current.TotalSize = mergedTotal;
                 current.FileCount += childFileCount;
 
-                // 移除空目录（无文件且无有效子目录）
-                var emptyChildren = current.Children
+                // 移除空目录
+                var emptyFolders = folderChildren
                     .Where(c => c.TotalSize <= 0 && c.FileCount <= 0)
                     .ToList();
-                foreach (var empty in emptyChildren)
-                {
+                foreach (var empty in emptyFolders)
                     current.Children.Remove(empty);
-                }
 
-                // 按大小降序排列
-                var sorted = current.Children.OrderByDescending(c => c.TotalSize).ToList();
+                // 排序：文件夹在前（按大小降序），文件在后（按大小降序）
+                var fileItems = current.ChildFiles
+                    .OrderByDescending(f => f.Size).Cast<object>().ToList();
+                var sortedFolders = folderChildren
+                    .Where(f => !emptyFolders.Contains(f))
+                    .OrderByDescending(c => c.TotalSize).Cast<object>().ToList();
                 current.Children.Clear();
-                foreach (var child in sorted)
-                {
-                    current.Children.Add(child);
-                }
+                foreach (var child in sortedFolders) current.Children.Add(child);
+                foreach (var file in fileItems) current.Children.Add(file);
             }
         }
     }

@@ -8,7 +8,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Toolbox"
              xmlns:helpers="clr-namespace:Toolbox.Helpers"
-             xmlns:models="clr-namespace:Toolbox.Models">
+             xmlns:models="clr-namespace:Toolbox.Models"
+             DispatcherUnhandledException="OnDispatcherUnhandledException">
     <Application.Resources>
         <!-- ========== 通用值转换器 ========== -->
         <!-- Bool ↔ Visibility -->

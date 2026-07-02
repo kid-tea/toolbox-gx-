@@ -102,7 +102,7 @@
                                                            FontSize="11"/>
                                             </StackPanel>
                                             <!-- 使用率进度条 -->
-                                            <ProgressBar Value="{Binding UsagePercent}" Maximum="100"
+                                            <ProgressBar Value="{Binding UsagePercent, Mode=OneWay}" Maximum="100"
                                                          Height="4" Margin="20,4,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -237,17 +237,19 @@
                                         </Style>
                                     </ScrollViewer.Style>
                                     <TreeView ItemsSource="{Binding SafeDiskChildren}">
-                                        <TreeView.ItemContainerStyle>
-                                            <Style TargetType="TreeViewItem">
-                                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
-                                            </Style>
-                                        </TreeView.ItemContainerStyle>
-                                        <TreeView.ItemTemplate>
+                                        <TreeView.Resources>
+                                            <!-- 文件夹模板 -->
                                             <HierarchicalDataTemplate DataType="{x:Type services:DiskFolderNode}"
                                                                       ItemsSource="{Binding Children}">
                                                 <Border Padding="4,2" Margin="0,1,0,0"
                                                         Background="Transparent"
                                                         ToolTip="{Binding FullPath}">
+                                                    <Border.ContextMenu>
+                                                        <ContextMenu>
+                                                            <MenuItem Header="📂 在资源管理器中打开"
+                                                                      Click="OnOpenFolderLocation"/>
+                                                        </ContextMenu>
+                                                    </Border.ContextMenu>
                                                     <Grid>
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="Auto"/>
@@ -255,23 +257,19 @@
                                                             <ColumnDefinition Width="Auto"/>
                                                             <ColumnDefinition Width="Auto"/>
                                                         </Grid.ColumnDefinitions>
-
                                                         <TextBlock Grid.Column="0" Text="📁"
                                                                    FontSize="13" Margin="0,0,6,0"
                                                                    VerticalAlignment="Center"/>
-
                                                         <TextBlock Grid.Column="1" Text="{Binding Name}"
                                                                    FontSize="12"
                                                                    Foreground="{StaticResource TextPrimaryBrush}"
                                                                    TextTrimming="CharacterEllipsis"
                                                                    VerticalAlignment="Center"/>
-
                                                         <TextBlock Grid.Column="2" Text="{Binding SizeDisplay}"
                                                                    FontSize="11"
                                                                    Foreground="{StaticResource AccentBrush}"
                                                                    Margin="8,0,8,0"
                                                                    VerticalAlignment="Center"/>
-
                                                         <TextBlock Grid.Column="3" Text="{Binding PercentageDisplay}"
                                                                    FontSize="11"
                                                                    Foreground="{StaticResource TextMutedBrush}"
@@ -280,7 +278,50 @@
                                                     </Grid>
                                                 </Border>
                                             </HierarchicalDataTemplate>
-                                        </TreeView.ItemTemplate>
+
+                                            <!-- 单个文件模板 -->
+                                            <DataTemplate DataType="{x:Type services:DiskFileItem}">
+                                                <Border Padding="4,2" Margin="0,1,0,0"
+                                                        Background="Transparent"
+                                                        ToolTip="{Binding FullPath}">
+                                                    <Border.ContextMenu>
+                                                        <ContextMenu>
+                                                            <MenuItem Header="📂 打开文件所在位置"
+                                                                      Click="OnOpenFileLocation"/>
+                                                            <Separator/>
+                                                            <MenuItem Header="🗑️ 删除该文件"
+                                                                      Click="OnDeleteFile"
+                                                                      Foreground="#E74C3C"/>
+                                                        </ContextMenu>
+                                                    </Border.ContextMenu>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="📄"
+                                                                   FontSize="12" Margin="0,0,6,0"
+                                                                   VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                                                   FontSize="12"
+                                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="2" Text="{Binding SizeDisplay}"
+                                                                   FontSize="11"
+                                                                   Foreground="{StaticResource TextMutedBrush}"
+                                                                   Margin="8,0,0,0"
+                                                                   VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </TreeView.Resources>
+                                        <TreeView.ItemContainerStyle>
+                                            <Style TargetType="TreeViewItem">
+                                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                                            </Style>
+                                        </TreeView.ItemContainerStyle>
                                     </TreeView>
                                 </ScrollViewer>
 

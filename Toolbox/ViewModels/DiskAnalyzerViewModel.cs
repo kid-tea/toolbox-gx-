@@ -217,8 +217,8 @@ public partial class DiskAnalyzerViewModel : ViewModelBase
     /// <summary>
     /// TreeView 安全绑定用 — 当 SelectedDisk 为 null 时返回空集合避免 NullReferenceException
     /// </summary>
-    public ObservableCollection<DiskFolderNode> SafeDiskChildren =>
-        SelectedDisk?.Children ?? new ObservableCollection<DiskFolderNode>();
+    public ObservableCollection<object> SafeDiskChildren =>
+        SelectedDisk?.Children ?? new ObservableCollection<object>();
 
     /// <summary>
     /// 当选中磁盘变化时，更新饼图数据和 OxyPlot 模型
@@ -233,7 +233,7 @@ public partial class DiskAnalyzerViewModel : ViewModelBase
             return;
 
         const int maxSlices = 8;
-        var topChildren = value.Children
+        var topChildren = value.ChildFolders
             .Where(c => c.TotalSize > 0)
             .Take(maxSlices)
             .ToList();
@@ -270,7 +270,7 @@ public partial class DiskAnalyzerViewModel : ViewModelBase
     /// </summary>
     public IEnumerable<DiskFolderNode> GetFolderTree(DiskFolderNode root)
     {
-        return root.Children.OrderByDescending(c => c.TotalSize);
+        return root.ChildFolders.OrderByDescending(c => c.TotalSize);
     }
 
     /// <summary>

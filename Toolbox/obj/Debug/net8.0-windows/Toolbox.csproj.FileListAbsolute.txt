@@ -88,3 +88,4 @@ D:\cchaha\项目-工具箱\Toolbox\Toolbox\bin\Debug\net8.0-windows\Toolbox.dll
 D:\cchaha\项目-工具箱\Toolbox\Toolbox\bin\Debug\net8.0-windows\Toolbox.pdb
 D:\cchaha\项目-工具箱\Toolbox\Toolbox\obj\Debug\net8.0-windows\Toolbox.genruntimeconfig.cache
 D:\cchaha\项目-工具箱\Toolbox\Toolbox\obj\Debug\net8.0-windows\ref\Toolbox.dll
+D:\cchaha\项目-工具箱\Toolbox\Toolbox\obj\Debug\net8.0-windows\Toolbox.sourcelink.json

@@ -278,7 +278,7 @@ public partial class App : Application
             Icon = "📊",
             ViewType = typeof(Views.DiskAnalyzerView),
             RequiresAdmin = false,
-            IsPendingOptimization = true
+            IsPendingOptimization = false
         });
         nav.NavItems.Add(new NavItem
         {
@@ -400,5 +400,24 @@ public partial class App : Application
             RequiresAdmin = false,
             IsPendingOptimization = true
         });
+    }
+
+    /// <summary>
+    /// 全局 UI 线程未处理异常捕获，防止闪退并记录错误
+    /// </summary>
+    private void OnDispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+    {
+        var log = ServiceProvider?.GetService<ILogService>();
+        log?.LogError("未处理的UI异常", e.Exception);
+
+        MessageBox.Show(
+            $"发生未处理的错误:\n\n{e.Exception.GetType().Name}: {e.Exception.Message}\n\n" +
+            $"StackTrace:\n{e.Exception.StackTrace}\n\n" +
+            "应用将继续运行，但可能不稳定。",
+            "错误",
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
+
+        e.Handled = true; // 阻止进程退出
     }
 }

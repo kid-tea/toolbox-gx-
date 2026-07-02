@@ -1,0 +1,230 @@
+<!--
+    MainWindow.xaml — 工具箱主窗口
+    清新现代侧边栏：可折叠分类 + 悬停动效 + 待优化标记 + 选中高亮
+-->
+<Window x:Class="Toolbox.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Toolbox.Views"
+        Title="工具箱" Height="800" Width="1200"
+        MinHeight="600" MinWidth="800"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BackgroundBrush}">
+
+    <Window.Resources>
+        <!-- 导航项悬停动画 -->
+        <Style x:Key="NavItemStyle" TargetType="Border">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="CornerRadius" Value="{StaticResource SmallCornerRadius}"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="0,1,0,1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource SidebarHoverBrush}"/>
+                </Trigger>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="Background" Value="{StaticResource AccentLightBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsPendingOptimization}" Value="True">
+                    <Setter Property="Opacity" Value="0.5"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 分类标题样式 -->
+        <Style x:Key="CategoryHeaderStyle" TargetType="Border">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="CornerRadius" Value="{StaticResource SmallCornerRadius}"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Margin" Value="0,4,0,4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource SidebarHoverBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="240"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ========== 左侧导航栏 ========== -->
+        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Logo + 标题 -->
+                <StackPanel Grid.Row="0" Margin="16,20,16,12">
+                    <TextBlock Text="🧰 工具箱"
+                               FontSize="22" FontWeight="Bold"
+                               Foreground="{StaticResource TextPrimaryBrush}"/>
+                    <TextBlock Text="实用工具集合"
+                               FontSize="11"
+                               Foreground="{StaticResource TextMutedBrush}"
+                               Margin="0,2,0,0"/>
+                </StackPanel>
+
+                <!-- 搜索框 -->
+                <Border Grid.Row="1" Margin="12,0,12,12"
+                        Background="{StaticResource InputBackgroundBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource SmallCornerRadius}">
+                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Background="Transparent"
+                             Foreground="{StaticResource TextPrimaryBrush}"
+                             BorderThickness="0"
+                             Height="32"
+                             Padding="10,4"
+                             FontSize="13"
+                             VerticalContentAlignment="Center"
+                             CaretBrush="{StaticResource AccentBrush}">
+                        <TextBox.Resources>
+                            <VisualBrush x:Key="PlaceholderBrush" Stretch="None" AlignmentX="Left">
+                                <VisualBrush.Visual>
+                                    <TextBlock Text="🔍 搜索工具..." Foreground="{StaticResource TextMutedBrush}" FontSize="13"/>
+                                </VisualBrush.Visual>
+                            </VisualBrush>
+                        </TextBox.Resources>
+                        <TextBox.Style>
+                            <Style TargetType="TextBox">
+                                <Style.Triggers>
+                                    <Trigger Property="Text" Value="">
+                                        <Setter Property="Background" Value="{StaticResource InputBackgroundBrush}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+                </Border>
+
+                <!-- 导航列表 -->
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto"
+                              Padding="8,0,8,8">
+                    <ItemsControl ItemsSource="{Binding GroupedNavItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="0,4,0,8">
+                                    <!-- 分类标题（可折叠） -->
+                                    <Border Style="{StaticResource CategoryHeaderStyle}"
+                                            MouseLeftButtonDown="OnCategoryHeaderClicked">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="▸" FontSize="10"
+                                                       Foreground="{StaticResource TextMutedBrush}"
+                                                       VerticalAlignment="Center" Margin="0,0,6,0">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="LayoutTransform">
+                                                            <Setter.Value>
+                                                                <RotateTransform Angle="90"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Items.Count}" Value="0">
+                                                                <Setter Property="LayoutTransform">
+                                                                    <Setter.Value>
+                                                                        <RotateTransform Angle="0"/>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBlock Grid.Column="1" Text="{Binding Category}"
+                                                       FontSize="11" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- 分类下的功能项列表 -->
+                                    <ItemsControl ItemsSource="{Binding Items}" Margin="0,2,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Style="{StaticResource NavItemStyle}"
+                                                        MouseLeftButtonDown="OnNavItemClicked">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="{Binding Icon}"
+                                                                   FontSize="14" VerticalAlignment="Center"
+                                                                   Margin="0,0,10,0"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                                   VerticalAlignment="Center" FontSize="13"/>
+                                                        <!-- 待优化标记 -->
+                                                        <Border Grid.Column="2"
+                                                                Background="{StaticResource WarningLightBrush}"
+                                                                CornerRadius="3" Padding="4,1"
+                                                                VerticalAlignment="Center"
+                                                                Visibility="{Binding IsPendingOptimization, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                            <TextBlock Text="待优化" FontSize="9"
+                                                                       Foreground="{StaticResource WarningBrush}"/>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- 更新提示条 -->
+                <Border Grid.Row="3" x:Name="UpdateBar" Visibility="Collapsed"
+                        Background="{StaticResource AccentBrush}" Padding="16,8"
+                        CornerRadius="{StaticResource SmallCornerRadius}" Margin="12,0,12,4">
+                    <TextBlock Foreground="White" Text="" TextTrimming="CharacterEllipsis"/>
+                </Border>
+
+                <!-- 底部按钮区 -->
+                <Border Grid.Row="4" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
+                        Background="{StaticResource SidebarBrush}">
+                    <StackPanel Margin="12,8">
+                        <Button Content="⚙️ 设置"
+                                Style="{StaticResource SidebarButtonStyle}"
+                                Click="OnSettingsButtonClick"
+                                HorizontalAlignment="Stretch"
+                                Foreground="{StaticResource TextSecondaryBrush}"
+                                Padding="12,8" FontSize="13"/>
+                        <Button Content="{Binding IsDarkTheme, StringFormat='{}{0:🌙 暗色主题|☀️ 亮色主题}'}"
+                                Command="{Binding ToggleThemeCommand}"
+                                HorizontalAlignment="Stretch"
+                                Style="{StaticResource SidebarButtonStyle}"
+                                Foreground="{StaticResource TextSecondaryBrush}"
+                                Padding="12,8" FontSize="13" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- ========== 右侧内容区 ========== -->
+        <Border Grid.Column="1" Background="{StaticResource ContentBrush}" Margin="16"
+                CornerRadius="{StaticResource LargeCornerRadius}">
+            <ContentControl x:Name="ContentHost"/>
+        </Border>
+    </Grid>
+</Window>

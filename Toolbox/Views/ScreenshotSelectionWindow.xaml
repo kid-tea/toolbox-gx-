@@ -1,0 +1,21 @@
+<!--
+    ScreenshotSelectionWindow.xaml — 屏幕区域选择覆盖窗口
+    全屏透明窗口，用户鼠标拖拽选择截图区域
+-->
+<Window x:Class="Toolbox.Views.ScreenshotSelectionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="选择截图区域"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Topmost="True"
+        ShowInTaskbar="False"
+        Background="Transparent"
+        WindowStartupLocation="Manual"
+        Cursor="Cross"
+        KeyDown="OnKeyDown"
+        Loaded="OnLoaded">
+    <Grid>
+        <Canvas x:Name="OverlayCanvas"/>
+    </Grid>
+</Window>

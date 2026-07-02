@@ -1,0 +1,50 @@
+<!--
+    App.xaml — 应用程序入口
+    不使用 StartupUri（通过 DI 创建 MainWindow），
+    启动流程由 App.xaml.cs 的 OnStartup 控制
+-->
+<Application x:Class="Toolbox.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Toolbox"
+             xmlns:helpers="clr-namespace:Toolbox.Helpers"
+             xmlns:models="clr-namespace:Toolbox.Models">
+    <Application.Resources>
+        <!-- ========== 通用值转换器 ========== -->
+        <!-- Bool ↔ Visibility -->
+        <helpers:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <helpers:BoolToVisibilityConverter x:Key="BoolToVisConverter"/>
+        <helpers:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <helpers:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+        <!-- Invert Bool ↔ Visibility -->
+        <helpers:InvertBoolToVisibilityConverter x:Key="InvertBoolToVisibilityConverter"/>
+        <helpers:InvertBoolToVisibilityConverter x:Key="InvertBoolToVisConverter"/>
+        <helpers:InvertBoolToVisibilityConverter x:Key="InvBoolToVis"/>
+        <helpers:InvertBoolToVisibilityConverter x:Key="InvBool"/>
+        <!-- Invert Bool -->
+        <helpers:InvertBoolConverter x:Key="InverseBoolConverter"/>
+        <helpers:InvertBoolConverter x:Key="BoolInverseConverter"/>
+        <helpers:InvertBoolConverter x:Key="NegateBoolConverter"/>
+        <!-- String → Visibility -->
+        <helpers:StringToVisibilityConverter x:Key="StringToVisConverter"/>
+        <helpers:StringToVisibilityConverter x:Key="StrToVis"/>
+        <!-- Bytes → Size -->
+        <helpers:BytesToSizeConverter x:Key="BytesToSizeConverter"/>
+        <!-- Percentage -->
+        <helpers:PercentageConverter x:Key="PercentageConverter"/>
+        <!-- Enum Equals -->
+        <helpers:EnumEqualsConverter x:Key="EnumEqualsConverter"/>
+        <!-- Importance → Visibility -->
+        <helpers:ImportanceToVisibilityConverter x:Key="ImportanceToVisibilityConverter"/>
+        <!-- Delete Status → Icon -->
+        <helpers:DeleteStatusToIconConverter x:Key="StatusToColorConverter"/>
+        <helpers:DeleteStatusToIconConverter x:Key="StatusToTextConverter"/>
+        <!-- Impact → Background -->
+        <helpers:PercentToStringConverter x:Key="ImpactToBackgroundConverter"/>
+        <helpers:PercentToStringConverter x:Key="SeverityToBackgroundConverter"/>
+        <!-- Zero count → Visibility -->
+        <helpers:BoolToVisibilityConverter x:Key="ZeroToVisibilityConverter"/>
+        <helpers:BoolToVisibilityConverter x:Key="CountToVisibilityConverter"/>
+        <helpers:ZeroCountToCollapsedConverter x:Key="ZeroCountToCollapsedConverter"/>
+    </Application.Resources>
+</Application>

@@ -1,0 +1,294 @@
+<!--
+    CleanupView.xaml — C盘清理页面
+    清新现代布局：摘要卡 + 分组清理项 + 底部操作栏
+-->
+<UserControl x:Class="Toolbox.Views.CleanupView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Toolbox.Views"
+             xmlns:services="clr-namespace:Toolbox.Services"
+             xmlns:converters="clr-namespace:Toolbox.Converters"
+             Background="{StaticResource ContentBrush}">
+
+    <UserControl.Resources>
+        <converters:BoolInverseConverter x:Key="BoolInverseConverter"/>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    </UserControl.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ========== 标题 + 摘要 ========== -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="C盘清理" FontSize="24" FontWeight="Bold"
+                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                <TextBlock Text="扫描完成后按安全等级分组展示，安全项默认勾选"
+                           FontSize="12" Foreground="{StaticResource TextMutedBrush}"
+                           Margin="0,4,0,0"/>
+            </StackPanel>
+            <Border Grid.Column="1" Background="{StaticResource AccentLightBrush}"
+                    CornerRadius="{StaticResource DefaultCornerRadius}"
+                    Padding="20,12">
+                <StackPanel>
+                    <TextBlock Text="当前选中可释放"
+                               FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBlock Text="{Binding SelectedSizeDisplay}"
+                               FontSize="22" FontWeight="Bold"
+                               Foreground="{StaticResource AccentBrush}"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ========== 操作按钮栏 + 状态 ========== -->
+        <Border Grid.Row="1" Background="{StaticResource CardBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                CornerRadius="{StaticResource DefaultCornerRadius}" Padding="12"
+                Margin="0,0,0,12">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Button Content="🔍 开始扫描"
+                            Command="{Binding ScanCommand}"
+                            IsEnabled="{Binding IsScanning, Converter={StaticResource BoolInverseConverter}, FallbackValue=True}"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Padding="16,8" Margin="0,0,8,0"/>
+                    <Button Content="🗑️ 开始清理"
+                            Command="{Binding CleanCommand}"
+                            IsEnabled="{Binding IsScanned}"
+                            Style="{StaticResource DangerButtonStyle}"
+                            Padding="16,8" Margin="0,0,8,0"/>
+                    <Separator Width="1" Margin="4,0" Background="{StaticResource BorderBrush}"/>
+                    <Button Content="全选安全" Command="{Binding SelectAllSafeCommand}"
+                            Style="{StaticResource SecondaryBtnStyle}" Padding="12,8" Margin="0,0,6,0"/>
+                    <Button Content="全选推荐" Command="{Binding SelectAllRecommendedCommand}"
+                            Style="{StaticResource SecondaryBtnStyle}" Padding="12,8" Margin="0,0,6,0"/>
+                    <Button Content="取消全选" Command="{Binding DeselectAllCommand}"
+                            Style="{StaticResource SecondaryBtnStyle}" Padding="12,8" Margin="0,0,6,0"/>
+                    <Button Content="✖ 取消"
+                            Command="{Binding CancelScanCommand}"
+                            Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}"
+                            Style="{StaticResource SecondaryBtnStyle}" Padding="12,8"/>
+                </StackPanel>
+                <TextBlock Text="{Binding StatusMessage}"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="12" TextTrimming="CharacterEllipsis" Margin="0,0,0,4"/>
+                <ProgressBar Value="{Binding ProgressValue}"
+                             Maximum="{Binding ProgressMax}"
+                             IsIndeterminate="{Binding IsProgressIndeterminate}"
+                             Height="4"
+                             Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ========== 清理项列表 ========== -->
+        <Border Grid.Row="2" Background="{StaticResource CardBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                CornerRadius="{StaticResource DefaultCornerRadius}" Padding="12">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!-- 安全项目 -->
+                    <Expander IsExpanded="True" Margin="0,0,0,8"
+                              Background="Transparent" BorderThickness="0">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Background="{StaticResource SuccessLightBrush}"
+                                        CornerRadius="{StaticResource SmallCornerRadius}"
+                                        Padding="8,2" Margin="0,0,8,0">
+                                    <TextBlock Text="安全" Foreground="{StaticResource SuccessBrush}"
+                                               FontSize="11" FontWeight="SemiBold"/>
+                                </Border>
+                                <TextBlock Text="完全不影响系统运行" FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Expander.Header>
+                        <ItemsControl ItemsSource="{Binding SafeItems}" Margin="0,4,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type services:CleanupItem}">
+                                    <Border Padding="12,8" Margin="0,0,0,4"
+                                            Background="{StaticResource InputBackgroundBrush}"
+                                            CornerRadius="{StaticResource SmallCornerRadius}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}"
+                                                      VerticalAlignment="Center" Margin="0,0,12,0"
+                                                      Checked="OnCleanupItemChecked"
+                                                      Unchecked="OnCleanupItemUnchecked"/>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}"
+                                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                                           FontSize="13" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding Description}"
+                                                           Foreground="{StaticResource TextMutedBrush}"
+                                                           FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding FileCountDisplay}"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           FontSize="11" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2" Text="{Binding SizeDisplay}"
+                                                       Foreground="{StaticResource AccentBrush}"
+                                                       FontSize="13" FontWeight="Bold"
+                                                       VerticalAlignment="Center" Margin="12,0"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Expander>
+
+                    <!-- 推荐项目 -->
+                    <Expander IsExpanded="True" Margin="0,0,0,8"
+                              Background="Transparent" BorderThickness="0">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Background="{StaticResource WarningLightBrush}"
+                                        CornerRadius="{StaticResource SmallCornerRadius}"
+                                        Padding="8,2" Margin="0,0,8,0">
+                                    <TextBlock Text="推荐" Foreground="{StaticResource WarningBrush}"
+                                               FontSize="11" FontWeight="SemiBold"/>
+                                </Border>
+                                <TextBlock Text="一般不影响系统，可能需要软件重新生成" FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Expander.Header>
+                        <ItemsControl ItemsSource="{Binding RecommendedItems}" Margin="0,4,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type services:CleanupItem}">
+                                    <Border Padding="12,8" Margin="0,0,0,4"
+                                            Background="{StaticResource InputBackgroundBrush}"
+                                            CornerRadius="{StaticResource SmallCornerRadius}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}"
+                                                      VerticalAlignment="Center" Margin="0,0,12,0"
+                                                      Checked="OnCleanupItemChecked"
+                                                      Unchecked="OnCleanupItemUnchecked"/>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}"
+                                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                                           FontSize="13" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding Description}"
+                                                           Foreground="{StaticResource TextMutedBrush}"
+                                                           FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2" Text="{Binding SizeDisplay}"
+                                                       Foreground="{StaticResource AccentBrush}"
+                                                       FontSize="13" FontWeight="Bold"
+                                                       VerticalAlignment="Center" Margin="12,0"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Expander>
+
+                    <!-- 高级项目 -->
+                    <Expander IsExpanded="False" Margin="0,0,0,4"
+                              Background="Transparent" BorderThickness="0">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Background="{StaticResource DangerLightBrush}"
+                                        CornerRadius="{StaticResource SmallCornerRadius}"
+                                        Padding="8,2" Margin="0,0,8,0">
+                                    <TextBlock Text="高级" Foreground="{StaticResource DangerBrush}"
+                                               FontSize="11" FontWeight="SemiBold"/>
+                                </Border>
+                                <TextBlock Text="需谨慎操作，可能影响系统或软件" FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Expander.Header>
+                        <ItemsControl ItemsSource="{Binding AdvancedItems}" Margin="0,4,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type services:CleanupItem}">
+                                    <Border Padding="12,8" Margin="0,0,0,4"
+                                            Background="{StaticResource InputBackgroundBrush}"
+                                            CornerRadius="{StaticResource SmallCornerRadius}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}"
+                                                      VerticalAlignment="Center" Margin="0,0,12,0"
+                                                      Checked="OnCleanupItemChecked"
+                                                      Unchecked="OnCleanupItemUnchecked"/>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}"
+                                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                                           FontSize="13" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding Description}"
+                                                           Foreground="{StaticResource TextMutedBrush}"
+                                                           FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2" Text="{Binding SizeDisplay}"
+                                                       Foreground="{StaticResource AccentBrush}"
+                                                       FontSize="13" FontWeight="Bold"
+                                                       VerticalAlignment="Center" Margin="12,0"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Expander>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- ========== 底部状态栏 ========== -->
+        <Border Grid.Row="3" Padding="12,8" Margin="0,12,0,0"
+                Background="{StaticResource CardBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                CornerRadius="{StaticResource DefaultCornerRadius}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="已选释放空间: " Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
+                    <TextBlock Text="{Binding SelectedSizeDisplay}"
+                               Foreground="{StaticResource AccentBrush}" FontSize="14" FontWeight="Bold"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <CheckBox Content="定时清理" IsChecked="{Binding ScheduledCleanupEnabled}"
+                              VerticalAlignment="Center" Margin="0,0,8,0"
+                              Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
+                    <TextBox Text="{Binding ScheduledCleanupDays, UpdateSourceTrigger=PropertyChanged}"
+                             Width="40" Height="24"
+                             VerticalContentAlignment="Center"
+                             HorizontalContentAlignment="Center"
+                             IsEnabled="{Binding ScheduledCleanupEnabled}"
+                             FontSize="12"
+                             Background="{StaticResource InputBackgroundBrush}"
+                             BorderBrush="{StaticResource BorderBrush}"/>
+                    <TextBlock Text="天/次" Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="12" VerticalAlignment="Center" Margin="4,0,8,0"/>
+                    <Button Content="保存" Command="{Binding SaveScheduledConfigCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Padding="12,6" FontSize="12"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

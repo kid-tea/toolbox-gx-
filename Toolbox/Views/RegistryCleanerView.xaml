@@ -1,0 +1,400 @@
+<!--
+    RegistryCleanerView.xaml — 注册表清理 + 高级电源选项页面
+    功能：6类扫描复选框、分页结果列表、扫描/修复按钮、备份历史侧面板、
+          高级电源选项区
+    安全铁律：备份失败不修复、还原前SHA256校验
+-->
+<UserControl x:Class="Toolbox.Views.RegistryCleanerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Toolbox.Views"
+             xmlns:vm="clr-namespace:Toolbox.ViewModels"
+             xmlns:svc="clr-namespace:Toolbox.Services"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:RegistryCleanerViewModel}"
+             Background="{StaticResource ContentBrush}">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+        <local:SeverityToColorConverter x:Key="SeverityToColorConverter"/>
+        <local:SeverityToBackgroundConverter x:Key="SeverityToBackgroundConverter"/>
+    </UserControl.Resources>
+
+    <Grid Margin="16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <!-- 备份历史侧面板 -->
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ========== 主内容区 ========== -->
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- ========== 扫描分类选择 ========== -->
+            <Border Grid.Row="0" Background="{StaticResource SidebarBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 分类复选框 -->
+                    <ItemsControl Grid.Column="0" ItemsSource="{Binding ScanCategories}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected}"
+                                          Foreground="{StaticResource TextPrimaryBrush}"
+                                          FontSize="12"
+                                          Margin="0,2,16,2"
+                                          ToolTip="{Binding Description}">
+                                    <TextBlock Text="{Binding DisplayName}" FontSize="12"/>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- 操作按钮 -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button Content="&#x1F50D; 扫描"
+                                Command="{Binding ScanCommand}"
+                                Background="{StaticResource AccentBrush}"
+                                Foreground="White"
+                                BorderThickness="0"
+                                Padding="16,6"
+                                Cursor="Hand"
+                                FontSize="12"/>
+                        <Button Content="&#x1F527; 修复选中"
+                                Command="{Binding FixCommand}"
+                                Background="{StaticResource DangerBrush}"
+                                Foreground="White"
+                                BorderThickness="0"
+                                Padding="12,6"
+                                Margin="8,0,0,0"
+                                Cursor="Hand"
+                                FontSize="12"/>
+                        <Button Content="&#x1F4C1; 备份"
+                                Command="{Binding ToggleBackupPanelCommand}"
+                                Background="{StaticResource InputBackgroundBrush}"
+                                Foreground="{StaticResource TextPrimaryBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                Padding="12,6"
+                                Margin="8,0,0,0"
+                                Cursor="Hand"
+                                FontSize="12"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ========== 状态栏 ========== -->
+            <Border Grid.Row="1" Background="{StaticResource SidebarBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="4" Padding="10,6" Margin="0,0,0,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="{Binding StatisticsText}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="12" VerticalAlignment="Center"/>
+
+                    <TextBlock Grid.Column="1" Text="{Binding StatusMessage}"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               FontSize="12" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" Margin="16,0"/>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <ProgressBar Value="{Binding ProgressValue}"
+                                     Maximum="{Binding ProgressMax}"
+                                     IsIndeterminate="{Binding IsProgressIndeterminate}"
+                                     Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"
+                                     Width="120" Height="6" VerticalAlignment="Center"/>
+                        <TextBlock Text="严重程度:" Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11" VerticalAlignment="Center" Margin="12,0,4,0"/>
+                        <ComboBox ItemsSource="{Binding SeverityFilters}"
+                                  SelectedItem="{Binding FilterSeverity}"
+                                  Width="60" FontSize="11"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ========== 全选/取消 + 分页信息 ========== -->
+            <Border Grid.Row="2" Background="{StaticResource SidebarBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="4" Padding="8,4" Margin="0,0,0,4">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <CheckBox Grid.Column="0" IsChecked="{Binding IsSelectAll}"
+                              Foreground="{StaticResource TextPrimaryBrush}" FontSize="11">
+                        <TextBlock Text="{Binding SelectedCount, StringFormat='全选 ({0}项)'}" FontSize="11"/>
+                    </CheckBox>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button Content="上一页"
+                                Command="{Binding PreviousPageCommand}"
+                                FontSize="11" Padding="8,2"
+                                Background="{StaticResource InputBackgroundBrush}"
+                                Foreground="{StaticResource TextPrimaryBrush}"
+                                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                Cursor="Hand"/>
+                        <TextBlock Text="{Binding CurrentPage, StringFormat=' {0} '}"
+                                   VerticalAlignment="Center" FontSize="11" Margin="4,0"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                        <TextBlock Text="{Binding TotalPages, StringFormat='/ {0}'}"
+                                   VerticalAlignment="Center" FontSize="11"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <Button Content="下一页"
+                                Command="{Binding NextPageCommand}"
+                                FontSize="11" Padding="8,2"
+                                Background="{StaticResource InputBackgroundBrush}"
+                                Foreground="{StaticResource TextPrimaryBrush}"
+                                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                Cursor="Hand" Margin="4,0,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ========== 问题列表 ========== -->
+            <Border Grid.Row="3" Background="{StaticResource SidebarBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="6" Padding="4">
+                <ListView ItemsSource="{Binding Issues}"
+                          Background="Transparent"
+                          BorderThickness="0"
+                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                            <Setter Property="Height" Value="36"/>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+
+                    <ListView.View>
+                        <GridView>
+                            <!-- 选择框 -->
+                            <GridViewColumn Header="" Width="32">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                  Command="{Binding DataContext.UpdateSelectionCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <!-- 严重程度 -->
+                            <GridViewColumn Header="" Width="48">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="3" Padding="4,2"
+                                                Background="{Binding Severity, Converter={StaticResource SeverityToBackgroundConverter}}"
+                                                HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding Severity}"
+                                                       Foreground="White"
+                                                       FontSize="10"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <!-- 分类 -->
+                            <GridViewColumn Header="分类" Width="100">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Category}"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   FontSize="11"
+                                                   VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <!-- 描述 -->
+                            <GridViewColumn Header="描述" Width="350">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Description}"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   FontSize="11"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   VerticalAlignment="Center"
+                                                   ToolTip="{Binding Description}"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <!-- 路径 -->
+                            <GridViewColumn Header="注册表路径" Width="300">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding RegistryPath}"
+                                                   Foreground="{StaticResource TextMutedBrush}"
+                                                   FontSize="10"
+                                                   FontFamily="Consolas"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   VerticalAlignment="Center"
+                                                   ToolTip="{Binding RegistryPath}"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </Border>
+
+            <!-- ========== 高级电源选项 ========== -->
+            <Border Grid.Row="5" Background="{StaticResource SidebarBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="6" Padding="12" Margin="0,8,0,0">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="&#x1F50C; 高级电源选项"
+                                   FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center"/>
+
+                        <TextBlock Grid.Column="1" Text="{Binding PowerOptionsStatus}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11" VerticalAlignment="Center" Margin="12,0"/>
+
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <Button Content="显示"
+                                    Command="{Binding ShowPowerOptionsCommand}"
+                                    FontSize="11" Padding="10,4"
+                                    Background="{StaticResource AccentBrush}"
+                                    Foreground="White" BorderThickness="0"
+                                    Cursor="Hand"/>
+                            <Button Content="隐藏(恢复默认)"
+                                    Command="{Binding HidePowerOptionsCommand}"
+                                    FontSize="11" Padding="10,4"
+                                    Margin="8,0,0,0"
+                                    Background="{StaticResource InputBackgroundBrush}"
+                                    Foreground="{StaticResource TextPrimaryBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                    Cursor="Hand"/>
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0">
+                        白名单 GUID: 处理器(54533251...) | 睡眠(238c9fa8...) | 电池(e73a048d...) | 显示(7516b95f...)
+                        <LineBreak/>
+                        显示 = Attributes=2 (解锁隐藏项) | 隐藏 = Attributes=1 (恢复默认) | 执行后自动刷新
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ========== 备份历史侧面板 ========== -->
+        <Border Grid.Column="1"
+                Background="{StaticResource SidebarBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0"
+                CornerRadius="0,6,6,0"
+                Width="220"
+                Visibility="{Binding IsBackupPanelOpen, Converter={StaticResource BoolToVisibility}}"
+                Margin="4,0,0,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- 标题 -->
+                <Border Grid.Row="0" Padding="12,10"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="&#x1F4C1; 备份历史"
+                                   FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Content="&#x1F504;"
+                                ToolTip="刷新"
+                                Command="{Binding RefreshBackupHistoryCommand}"
+                                FontSize="12" Padding="4,2"
+                                Background="Transparent"
+                                Foreground="{StaticResource TextSecondaryBrush}"
+                                BorderThickness="0" Cursor="Hand"/>
+                    </Grid>
+                </Border>
+
+                <!-- 备份列表 -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding BackupHistory}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="10,8"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="0,0,0,1"
+                                        Cursor="Hand">
+                                    <Border.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="还原此备份"
+                                                      Command="{Binding DataContext.RestoreBackupCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                      CommandParameter="{Binding}"/>
+                                            <MenuItem Header="删除此备份"
+                                                      Command="{Binding DataContext.DeleteBackupCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                      CommandParameter="{Binding}"/>
+                                        </ContextMenu>
+                                    </Border.ContextMenu>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding CreatedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
+                                                   FontSize="10"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Text="{Binding Description}"
+                                                   FontSize="11"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Hash}"
+                                                   FontSize="9"
+                                                   Foreground="{StaticResource TextMutedBrush}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   ToolTip="{Binding Hash}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

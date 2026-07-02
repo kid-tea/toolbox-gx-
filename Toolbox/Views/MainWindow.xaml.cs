@@ -37,6 +37,10 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
+        // 设置窗口图标
+        Icon = System.Windows.Media.Imaging.BitmapFrame.Create(
+            new Uri("pack://application:,,,/app.png", UriKind.Absolute));
+
         _nav = nav;
         _log = log;
         _config = config;

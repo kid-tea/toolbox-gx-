@@ -15,9 +15,9 @@
         WindowStartupLocation="Manual"
         Background="Transparent">
     <Grid>
-        <Border Background="{StaticResource CardBrush}"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                CornerRadius="{StaticResource DefaultCornerRadius}"
+        <Border Background="{DynamicResource CardBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                CornerRadius="{DynamicResource DefaultCornerRadius}"
                 Padding="8">
             <Grid>
                 <Grid.RowDefinitions>
@@ -31,14 +31,14 @@
                         <Button x:Name="ToggleTopmostBtn" Content="📌" Width="28" Height="24"
                                 Click="OnToggleTopmostClick" FontSize="12"
                                 Background="Transparent" BorderThickness="0" Cursor="Hand"
-                                Foreground="{StaticResource TextPrimaryBrush}"/>
+                                Foreground="{DynamicResource TextPrimaryBrush}"/>
                         <TextBlock Text="悬浮任务" VerticalAlignment="Center" FontSize="12"
                                    FontWeight="SemiBold" Margin="4,0,8,0"
-                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
                         <Button Content="✕" Width="24" Height="24"
                                 Click="OnCloseClick" FontSize="11"
                                 Background="Transparent"
-                                Foreground="{StaticResource TextSecondaryBrush}"
+                                Foreground="{DynamicResource TextSecondaryBrush}"
                                 BorderThickness="0" Cursor="Hand"/>
                     </StackPanel>
                 </Border>
@@ -60,10 +60,10 @@
                                                        TextTrimming="CharacterEllipsis">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
-                                                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding IsCompleted}" Value="True">
-                                                                <Setter Property="Foreground" Value="{StaticResource CompletedBrush}"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource CompletedBrush}"/>
                                                                 <Setter Property="TextDecorations" Value="Strikethrough"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -75,8 +75,8 @@
                                         <!-- 时间 + 重要性 -->
                                         <StackPanel Orientation="Horizontal" Margin="20,2,0,0">
                                             <TextBlock Text="{Binding NextTriggerTime, StringFormat='{}{0:MM-dd HH:mm}'}"
-                                                       Foreground="{StaticResource TextMutedBrush}" FontSize="10"/>
-                                            <Border Background="{StaticResource DangerBrush}"
+                                                       Foreground="{DynamicResource TextMutedBrush}" FontSize="10"/>
+                                            <Border Background="{DynamicResource DangerBrush}"
                                                     CornerRadius="2" Padding="2,0" Margin="6,0,0,0">
                                                 <Border.Style>
                                                     <Style TargetType="Border">

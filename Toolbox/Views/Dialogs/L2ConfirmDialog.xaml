@@ -10,7 +10,7 @@
         WindowStartupLocation="CenterOwner"
         WindowStyle="ToolWindow"
         ResizeMode="NoResize"
-        Background="{StaticResource ContentBrush}">
+        Background="{DynamicResource ContentBrush}">
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -20,18 +20,18 @@
 
         <!-- 标题 -->
         <TextBlock Grid.Row="0" Text="⚠️ 请确认此操作" FontSize="16" FontWeight="Bold"
-                   Foreground="{StaticResource WarningBrush}" Margin="0,0,0,12"/>
+                   Foreground="{DynamicResource WarningBrush}" Margin="0,0,0,12"/>
 
         <!-- 消息内容 -->
         <TextBlock Grid.Row="1" x:Name="MessageText" TextWrapping="Wrap" FontSize="13"
-                   Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Top"/>
+                   Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Top"/>
 
         <!-- 底部按钮区域 -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
             <Button Content="取消" Width="100" Height="32" Margin="0,0,12,0"
-                    Style="{StaticResource SecondaryButtonStyle}" Click="OnCancelClick"/>
+                    Style="{DynamicResource SecondaryButtonStyle}" Click="OnCancelClick"/>
             <Button x:Name="ConfirmButton" Content="确认" Width="100" Height="32"
-                    Style="{StaticResource DangerButtonStyle}" IsEnabled="False" Click="OnConfirmClick"/>
+                    Style="{DynamicResource DangerButtonStyle}" IsEnabled="False" Click="OnConfirmClick"/>
         </StackPanel>
     </Grid>
 </Window>

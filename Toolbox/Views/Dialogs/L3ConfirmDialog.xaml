@@ -10,7 +10,7 @@
         WindowStartupLocation="CenterOwner"
         WindowStyle="ToolWindow"
         ResizeMode="NoResize"
-        Background="{StaticResource ContentBrush}">
+        Background="{DynamicResource ContentBrush}">
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -22,31 +22,31 @@
 
         <!-- 标题 -->
         <TextBlock Grid.Row="0" Text="⚠️ 危险操作确认" FontSize="16" FontWeight="Bold"
-                   Foreground="{StaticResource DangerBrush}" Margin="0,0,0,12"/>
+                   Foreground="{DynamicResource DangerBrush}" Margin="0,0,0,12"/>
 
         <!-- 消息内容 -->
         <TextBlock Grid.Row="1" x:Name="MessageText" TextWrapping="Wrap" FontSize="13"
-                   Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Top"/>
+                   Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Top"/>
 
         <!-- 输入确认提示 -->
         <StackPanel Grid.Row="2" Margin="0,16,0,0">
-            <TextBlock x:Name="InputPromptText" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+            <TextBlock x:Name="InputPromptText" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
                        TextWrapping="Wrap" Margin="0,0,0,8"/>
             <TextBox x:Name="ConfirmInput" Height="32" FontSize="14"
-                     Background="{StaticResource InputBackgroundBrush}"
-                     Foreground="{StaticResource TextPrimaryBrush}"
+                     Background="{DynamicResource InputBackgroundBrush}"
+                     Foreground="{DynamicResource TextPrimaryBrush}"
                      TextChanged="OnInputTextChanged"
-                     Style="{StaticResource DefaultTextBoxStyle}"/>
-            <TextBlock x:Name="ErrorText" Foreground="{StaticResource DangerBrush}" FontSize="11"
+                     Style="{DynamicResource DefaultTextBoxStyle}"/>
+            <TextBlock x:Name="ErrorText" Foreground="{DynamicResource DangerBrush}" FontSize="11"
                        Visibility="Collapsed" Margin="0,4,0,0"/>
         </StackPanel>
 
         <!-- 底部按钮区域 -->
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
             <Button Content="取消" Width="100" Height="32" Margin="0,0,12,0"
-                    Style="{StaticResource SecondaryButtonStyle}" Click="OnCancelClick"/>
+                    Style="{DynamicResource SecondaryButtonStyle}" Click="OnCancelClick"/>
             <Button x:Name="ConfirmButton" Content="确认" Width="100" Height="32"
-                    Style="{StaticResource DangerButtonStyle}" IsEnabled="False" Click="OnConfirmClick"/>
+                    Style="{DynamicResource DangerButtonStyle}" IsEnabled="False" Click="OnConfirmClick"/>
         </StackPanel>
     </Grid>
 </Window>

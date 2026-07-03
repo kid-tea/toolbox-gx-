@@ -1,0 +1,196 @@
+<!--
+    LightTheme.xaml — 亮色主题资源字典
+    清新现代配色：柔和蓝紫主色 + 温暖中性背景 + 清晰层级
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ========== 背景色（清新温暖中性色） ========== -->
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#F0F2F5"/>
+    <SolidColorBrush x:Key="SidebarBrush" Color="#FAFBFC"/>
+    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#EEF1F5"/>
+    <SolidColorBrush x:Key="ContentBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="CardBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="InputBackgroundBrush" Color="#F7F8FA"/>
+
+    <!-- ========== 文字颜色 ========== -->
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#1F2329"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#4E5969"/>
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#86909C"/>
+
+    <!-- ========== 主题强调色（柔和蓝紫） ========== -->
+    <SolidColorBrush x:Key="AccentBrush" Color="#5B8DEF"/>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#4A7BD8"/>
+    <SolidColorBrush x:Key="AccentLightBrush" Color="#E8F0FE"/>
+
+    <!-- ========== 功能色 ========== -->
+    <SolidColorBrush x:Key="DangerBrush" Color="#E5484D"/>
+    <SolidColorBrush x:Key="DangerLightBrush" Color="#FDECEC"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="#F77234"/>
+    <SolidColorBrush x:Key="WarningLightBrush" Color="#FFF3E8"/>
+    <SolidColorBrush x:Key="SuccessBrush" Color="#3CB26B"/>
+    <SolidColorBrush x:Key="SuccessLightBrush" Color="#E8F8EE"/>
+    <SolidColorBrush x:Key="CompletedBrush" Color="#C9CDD4"/>
+    <SolidColorBrush x:Key="ImportantBrush" Color="#FFF0F0"/>
+
+    <!-- ========== 边框 ========== -->
+    <SolidColorBrush x:Key="BorderBrush" Color="#E5E6EB"/>
+    <SolidColorBrush x:Key="BorderLightBrush" Color="#F2F3F5"/>
+
+    <!-- ========== 通用样式设置 ========== -->
+    <CornerRadius x:Key="DefaultCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="SmallCornerRadius">4</CornerRadius>
+    <CornerRadius x:Key="LargeCornerRadius">12</CornerRadius>
+
+    <SolidColorBrush x:Key="SecondaryBrush" Color="#E8EAF0"/>
+
+    <!-- ========== 按钮样式 ========== -->
+    <Style x:Key="SidebarButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="Padding" Value="8,6"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}"
+                            CornerRadius="{StaticResource SmallCornerRadius}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource SidebarHoverBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Padding" Value="16,8"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}"
+                            CornerRadius="{StaticResource SmallCornerRadius}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource AccentHoverBrush}"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.5"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="PrimaryBtnStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}"/>
+
+    <Style x:Key="DangerButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource DangerBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Padding" Value="16,8"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}"
+                            CornerRadius="{StaticResource SmallCornerRadius}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#C73E42"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.5"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="DangerBtnStyle" TargetType="Button" BasedOn="{StaticResource DangerButtonStyle}"/>
+
+    <Style x:Key="WarningButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource WarningBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Padding" Value="16,8"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}"
+                            CornerRadius="{StaticResource SmallCornerRadius}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="SecondaryBtnStyle" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource SecondaryBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="Padding" Value="16,8"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}"
+                            CornerRadius="{StaticResource SmallCornerRadius}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#DCE0E8"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ========== 文本样式 ========== -->
+    <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="18"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="Margin" Value="0,16,0,8"/>
+    </Style>
+
+    <Style x:Key="InputLabelStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+        <Setter Property="Margin" Value="0,8,0,4"/>
+    </Style>
+
+    <!-- ========== 输入框样式 ========== -->
+    <Style x:Key="SearchTextBoxStyle" TargetType="TextBox">
+        <Setter Property="Background" Value="{StaticResource InputBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="Padding" Value="8,6"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+    </Style>
+
+</ResourceDictionary>

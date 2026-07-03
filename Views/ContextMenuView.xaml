@@ -1,0 +1,281 @@
+<!--
+    ContextMenuView.xaml — 右键菜单管理页面
+    功能：右键菜单项列表、位置筛选、搜索、启用/禁用、删除、重启Explorer
+    扫描9个Shell Extension 注册位置
+    系统项（Approved列表）特殊标注，删除需L2确认
+-->
+<UserControl x:Class="Toolbox.Views.ContextMenuView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Toolbox.Views"
+             xmlns:vm="clr-namespace:Toolbox.ViewModels"
+             xmlns:svc="clr-namespace:Toolbox.Services"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:ContextMenuViewModel}"
+             Background="{StaticResource ContentBrush}">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+        <local:InverseBoolConverter x:Key="InverseBoolConverter"/>
+    </UserControl.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <!-- 工具栏 -->
+            <RowDefinition Height="Auto"/>
+            <!-- 状态栏 -->
+            <RowDefinition Height="Auto"/>
+            <!-- 菜单项列表 -->
+            <RowDefinition Height="*"/>
+            <!-- 底部操作栏 -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ========== 工具栏 ========== -->
+        <Border Grid.Row="0" Background="{StaticResource SidebarBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                CornerRadius="6" Padding="12" Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Button Content="&#x1F50D; 扫描菜单项"
+                            Command="{Binding ScanCommand}"
+                            Background="{StaticResource AccentBrush}"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Padding="16,6"
+                            Cursor="Hand"
+                            FontSize="12"/>
+                </StackPanel>
+
+                <Grid Grid.Column="1" Margin="16,0">
+                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Background="{StaticResource InputBackgroundBrush}"
+                             Foreground="{StaticResource TextPrimaryBrush}"
+                             BorderBrush="{StaticResource BorderBrush}"
+                             BorderThickness="1"
+                             Height="28"
+                             Padding="8,4"
+                             FontSize="12"
+                             VerticalAlignment="Center">
+                        <TextBox.Resources>
+                            <VisualBrush x:Key="PlaceholderBrush" Stretch="None" AlignmentX="Left">
+                                <VisualBrush.Visual>
+                                    <TextBlock Text="搜索名称、CLSID、DLL路径..."
+                                               Foreground="{StaticResource TextMutedBrush}" FontSize="12"/>
+                                </VisualBrush.Visual>
+                            </VisualBrush>
+                        </TextBox.Resources>
+                    </TextBox>
+                </Grid>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <TextBlock Text="位置:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <ComboBox ItemsSource="{Binding LocationFilters}"
+                              SelectedItem="{Binding FilterLocation}"
+                              Width="120" FontSize="11"/>
+
+                    <TextBlock Text="状态:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                    <ComboBox ItemsSource="{Binding StatusFilters}"
+                              SelectedItem="{Binding FilterStatus}"
+                              Width="80" FontSize="11"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ========== 状态栏 ========== -->
+        <Border Grid.Row="1" Background="{StaticResource SidebarBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                CornerRadius="4" Padding="10,6" Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding StatisticsText}"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="12" VerticalAlignment="Center"/>
+
+                <TextBlock Grid.Column="1" Text="{Binding StatusMessage}"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           FontSize="12" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis" Margin="16,0"/>
+
+                <ProgressBar Grid.Column="2"
+                             Value="{Binding ProgressValue}"
+                             Maximum="{Binding ProgressMax}"
+                             IsIndeterminate="{Binding IsProgressIndeterminate}"
+                             Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"
+                             Width="120" Height="6"/>
+            </Grid>
+        </Border>
+
+        <!-- ========== 菜单项列表 ========== -->
+        <Border Grid.Row="2" Background="{StaticResource SidebarBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                CornerRadius="6" Padding="4">
+            <ListView ItemsSource="{Binding Items}"
+                      Background="Transparent"
+                      BorderThickness="0"
+                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                        <Setter Property="Height" Value="44"/>
+                    </Style>
+                </ListView.ItemContainerStyle>
+
+                <ListView.View>
+                    <GridView>
+                        <!-- 启用/禁用 -->
+                        <GridViewColumn Header="" Width="48">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                              Command="{Binding DataContext.ToggleItemCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                              CommandParameter="{Binding}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+
+                        <!-- 系统标记 -->
+                        <GridViewColumn Header="" Width="36">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="&#x26A0;"
+                                               ToolTip="系统关键项 - 操作需二次确认"
+                                               FontSize="14"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Visibility="{Binding IsSystemItem, Converter={StaticResource BoolToVisibility}}"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+
+                        <!-- 名称 -->
+                        <GridViewColumn Header="名称" Width="200">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}"
+                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               FontSize="12"
+                                               TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+
+                        <!-- CLSID -->
+                        <GridViewColumn Header="CLSID" Width="260">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Clsid}"
+                                               Foreground="{StaticResource TextMutedBrush}"
+                                               FontSize="10"
+                                               FontFamily="Consolas"
+                                               TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center"
+                                               ToolTip="{Binding Clsid}"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+
+                        <!-- 位置 -->
+                        <GridViewColumn Header="位置" Width="100">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding LocationDisplay}"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               FontSize="11"
+                                               VerticalAlignment="Center"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+
+                        <!-- DLL 路径 -->
+                        <GridViewColumn Header="DLL 路径" Width="300">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DllPath}"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               FontSize="11"
+                                               TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center"
+                                               ToolTip="{Binding DllPath}"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+
+                        <!-- 操作 -->
+                        <GridViewColumn Header="" Width="60">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="&#x1F5D1;"
+                                            ToolTip="删除菜单项"
+                                            Padding="4,2"
+                                            FontSize="12"
+                                            Background="Transparent"
+                                            Foreground="{StaticResource TextMutedBrush}"
+                                            BorderThickness="0"
+                                            Cursor="Hand"
+                                            Command="{Binding DataContext.DeleteItemCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                            CommandParameter="{Binding}"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+        </Border>
+
+        <!-- ========== 底部操作栏 ========== -->
+        <Border Grid.Row="3" Background="{StaticResource SidebarBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                CornerRadius="4" Padding="12,8" Margin="0,8,0,0"
+                Visibility="{Binding HasPendingChanges, Converter={StaticResource BoolToVisibility}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="&#x26A0; 有未生效的更改"
+                               Foreground="#E67E22"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Text="需要重启 Windows 资源管理器以应用更改"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="11"
+                               VerticalAlignment="Center"
+                               Margin="8,0,0,0"/>
+                </StackPanel>
+
+                <Button Grid.Column="1" Content="重启资源管理器"
+                        Command="{Binding RestartExplorerCommand}"
+                        Background="#E67E22"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Padding="16,6"
+                        Cursor="Hand"
+                        FontSize="12"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

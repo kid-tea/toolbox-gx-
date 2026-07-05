@@ -84,7 +84,6 @@
             <!-- 删除按钮 -->
             <Button Content="强制删除" Command="{Binding ExecuteDeleteCommand}"
                     Style="{StaticResource DangerBtnStyle}" Width="120" Height="32"
-                    IsEnabled="{Binding HasFiles}"
                     ToolTip="终止占用进程并强制删除文件" />
         </StackPanel>
 

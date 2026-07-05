@@ -51,7 +51,6 @@
                         Background="{StaticResource DangerBrush}" Foreground="White"
                         BorderThickness="0" Padding="12,6" Cursor="Hand"
                         FontWeight="Bold" Width="120" Height="32" Margin="0,0,8,0"
-                        IsEnabled="{Binding HasFiles}"
                         ToolTip="执行四重确认后永久销毁文件" />
                 <!-- 取消按钮（执行中可见） -->
                 <Button Content="取消" Command="{Binding CancelShredCommand}"

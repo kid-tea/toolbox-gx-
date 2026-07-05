@@ -23,10 +23,10 @@
             <Setter Property="Cursor" Value="Hand"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource SidebarHoverBrush}"/>
+                    <Setter Property="Background" Value="{DynamicResource ShellSidebarHoverBrush}"/>
                 </Trigger>
                 <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                    <Setter Property="Background" Value="{StaticResource AccentLightBrush}"/>
+                    <Setter Property="Background" Value="{DynamicResource ShellAccentLightBrush}"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding IsPendingOptimization}" Value="True">
                     <Setter Property="Opacity" Value="0.5"/>
@@ -43,7 +43,7 @@
             <Setter Property="Cursor" Value="Hand"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource SidebarHoverBrush}"/>
+                    <Setter Property="Background" Value="{DynamicResource ShellSidebarHoverBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -51,52 +51,58 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="240"/>
+            <ColumnDefinition x:Name="SidebarColumn" Width="260"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
         <!-- ========== 左侧导航栏 ========== -->
-        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+        <Border x:Name="SidebarBorder" Grid.Column="0" Background="{DynamicResource ShellSidebarBrush}"
+                BorderBrush="{DynamicResource ShellBorderBrush}" BorderThickness="0,0,1,0">
             <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+                <Grid x:Name="SidebarContent"
+                      Visibility="{Binding IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                <!-- Logo + 标题 -->
-                <StackPanel Grid.Row="0" Margin="16,20,16,12">
-                    <TextBlock Text="🧰 工具箱"
-                               FontSize="22" FontWeight="Bold"
-                               Foreground="{StaticResource TextPrimaryBrush}"/>
-                    <TextBlock Text="实用工具集合"
-                               FontSize="11"
-                               Foreground="{StaticResource TextMutedBrush}"
-                               Margin="0,2,0,0"/>
-                </StackPanel>
+                    <!-- Logo + 标题 -->
+                    <StackPanel Grid.Row="0" Margin="16,20,16,12">
+                        <TextBlock Text="▣" FontSize="24" FontWeight="Bold"
+                                   Foreground="{DynamicResource ShellAccentBrush}"
+                                   HorizontalAlignment="Left"/>
+                        <TextBlock Text="工具箱"
+                                   FontSize="22" FontWeight="Bold"
+                                   Foreground="{DynamicResource ShellTextPrimaryBrush}"/>
+                        <TextBlock Text="实用工具集合"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource ShellTextMutedBrush}"
+                                   Margin="0,2,0,0"/>
+                    </StackPanel>
 
                 <!-- 搜索框 -->
                 <Border Grid.Row="1" Margin="12,0,12,12"
-                        Background="{StaticResource InputBackgroundBrush}"
-                        BorderBrush="{StaticResource BorderBrush}"
+                        Background="{DynamicResource ShellInputBackgroundBrush}"
+                        BorderBrush="{DynamicResource ShellBorderBrush}"
                         BorderThickness="1"
-                        CornerRadius="{StaticResource SmallCornerRadius}">
+                        CornerRadius="{StaticResource SmallCornerRadius}"
+                        Visibility="{Binding IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibilityConverter}}">
                     <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                              Background="Transparent"
-                             Foreground="{StaticResource TextPrimaryBrush}"
+                             Foreground="{DynamicResource ShellTextPrimaryBrush}"
                              BorderThickness="0"
                              Height="32"
                              Padding="10,4"
                              FontSize="13"
                              VerticalContentAlignment="Center"
-                             CaretBrush="{StaticResource AccentBrush}">
+                             CaretBrush="{DynamicResource ShellAccentBrush}">
                         <TextBox.Resources>
                             <VisualBrush x:Key="PlaceholderBrush" Stretch="None" AlignmentX="Left">
                                 <VisualBrush.Visual>
-                                    <TextBlock Text="🔍 搜索工具..." Foreground="{StaticResource TextMutedBrush}" FontSize="13"/>
+                                    <TextBlock Text="🔍 搜索工具..." Foreground="{DynamicResource ShellTextMutedBrush}" FontSize="13"/>
                                 </VisualBrush.Visual>
                             </VisualBrush>
                         </TextBox.Resources>
@@ -104,7 +110,7 @@
                             <Style TargetType="TextBox">
                                 <Style.Triggers>
                                     <Trigger Property="Text" Value="">
-                                        <Setter Property="Background" Value="{StaticResource InputBackgroundBrush}"/>
+                                        <Setter Property="Background" Value="{DynamicResource ShellInputBackgroundBrush}"/>
                                     </Trigger>
                                 </Style.Triggers>
                             </Style>
@@ -129,7 +135,7 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="▸" FontSize="10"
-                                                       Foreground="{StaticResource TextMutedBrush}"
+                                                       Foreground="{DynamicResource ShellTextMutedBrush}"
                                                        VerticalAlignment="Center" Margin="0,0,6,0">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
@@ -152,8 +158,9 @@
                                             </TextBlock>
                                             <TextBlock Grid.Column="1" Text="{Binding Category}"
                                                        FontSize="11" FontWeight="SemiBold"
-                                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                                       VerticalAlignment="Center"/>
+                                                       Foreground="{DynamicResource ShellTextSecondaryBrush}"
+                                                       VerticalAlignment="Center"
+                                                       Visibility="{Binding IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                         </Grid>
                                     </Border>
 
@@ -170,17 +177,33 @@
                                                             <ColumnDefinition Width="Auto"/>
                                                         </Grid.ColumnDefinitions>
                                                         <TextBlock Grid.Column="0" Text="{Binding Icon}"
-                                                                   FontSize="14" VerticalAlignment="Center"
+                                                                   FontSize="16" VerticalAlignment="Center"
+                                                                   HorizontalAlignment="Center"
+                                                                   Foreground="{DynamicResource ShellTextSecondaryBrush}"
                                                                    Margin="0,0,10,0"/>
                                                         <TextBlock Grid.Column="1" Text="{Binding Name}"
-                                                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                                                   VerticalAlignment="Center" FontSize="13"/>
+                                                                   Foreground="{DynamicResource ShellTextPrimaryBrush}"
+                                                                   VerticalAlignment="Center" FontSize="13"
+                                                                   Visibility="{Binding IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                                         <!-- 待优化标记 -->
                                                         <Border Grid.Column="2"
                                                                 Background="{StaticResource WarningLightBrush}"
                                                                 CornerRadius="3" Padding="4,1"
-                                                                VerticalAlignment="Center"
-                                                                Visibility="{Binding IsPendingOptimization, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                VerticalAlignment="Center">
+                                                            <Border.Style>
+                                                                <Style TargetType="Border">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Style.Triggers>
+                                                                        <MultiDataTrigger>
+                                                                            <MultiDataTrigger.Conditions>
+                                                                                <Condition Binding="{Binding IsPendingOptimization}" Value="True"/>
+                                                                                <Condition Binding="{Binding IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"/>
+                                                                            </MultiDataTrigger.Conditions>
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </MultiDataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Border.Style>
                                                             <TextBlock Text="待优化" FontSize="9"
                                                                        Foreground="{StaticResource WarningBrush}"/>
                                                         </Border>
@@ -197,34 +220,78 @@
 
                 <!-- 更新提示条 -->
                 <Border Grid.Row="3" x:Name="UpdateBar" Visibility="Collapsed"
-                        Background="{StaticResource AccentBrush}" Padding="16,8"
+                        Background="{DynamicResource ShellAccentBrush}" Padding="16,8"
                         CornerRadius="{StaticResource SmallCornerRadius}" Margin="12,0,12,4">
                     <TextBlock Foreground="White" Text="" TextTrimming="CharacterEllipsis"/>
                 </Border>
 
                 <!-- 底部按钮区 -->
-                <Border Grid.Row="4" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
-                        Background="{StaticResource SidebarBrush}">
+                    <Border Grid.Row="4" BorderBrush="{DynamicResource ShellBorderBrush}" BorderThickness="0,1,0,0"
+                            Background="{DynamicResource ShellSidebarBrush}">
                     <StackPanel Margin="12,8">
-                        <Button Content="⚙️ 设置"
-                                Style="{StaticResource SidebarButtonStyle}"
+                        <Button Style="{StaticResource SidebarButtonStyle}"
                                 Click="OnSettingsButtonClick"
                                 HorizontalAlignment="Stretch"
-                                Foreground="{StaticResource TextSecondaryBrush}"
-                                Padding="12,8" FontSize="13"/>
-                        <Button Content="{Binding IsDarkTheme, StringFormat='{}{0:🌙 暗色主题|☀️ 亮色主题}'}"
-                                Command="{Binding ToggleThemeCommand}"
-                                HorizontalAlignment="Stretch"
-                                Style="{StaticResource SidebarButtonStyle}"
-                                Foreground="{StaticResource TextSecondaryBrush}"
-                                Padding="12,8" FontSize="13" Margin="0,2,0,0"/>
+                                Foreground="{DynamicResource ShellTextSecondaryBrush}"
+                                Padding="12,8" FontSize="13">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="⚙" FontSize="16" Margin="0,0,10,0"/>
+                                <TextBlock Text="设置"
+                                           Visibility="{Binding IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
-                </Border>
+                    </Border>
+                </Grid>
+
+                <Button x:Name="SidebarToggleButton"
+                        Click="OnSidebarToggleClick"
+                        Width="22"
+                        Height="58"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Padding="0"
+                        BorderThickness="1"
+                        BorderBrush="{DynamicResource ShellBorderBrush}"
+                        Background="{DynamicResource ShellSidebarHoverBrush}"
+                        Foreground="{DynamicResource ShellTextPrimaryBrush}"
+                        Cursor="Hand"
+                        ToolTip="展开/收起工具栏">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="10,0,0,10">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource ShellAccentLightBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                    <TextBlock FontSize="12" FontWeight="Bold">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="◀"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ShellTextPrimaryBrush}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSidebarExpanded, RelativeSource={RelativeSource AncestorType=Window}}" Value="False">
+                                        <Setter Property="Text" Value="▶"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Button>
             </Grid>
         </Border>
 
         <!-- ========== 右侧内容区 ========== -->
-        <Border Grid.Column="1" Background="{StaticResource ContentBrush}" Margin="12"
+        <Border x:Name="ContentFrame" Grid.Column="1" Background="{StaticResource ContentBrush}" Margin="10"
+                BorderBrush="{DynamicResource ShellBorderBrush}" BorderThickness="1"
                 CornerRadius="{StaticResource LargeCornerRadius}">
             <ContentControl x:Name="ContentHost"/>
         </Border>

@@ -15,12 +15,12 @@ public interface ICleanupService
 
     /// <summary>
     /// 扫描所有清理项的大小
-    /// 使用流式枚举、48小时 LastWriteTime 过滤、跳过符号链接
+    /// 使用流式枚举、可选 24 小时 LastWriteTime 过滤、跳过符号链接
     /// 每批 500 个文件更新一次进度
     /// </summary>
     /// <param name="progress">进度报告回调，报告当前扫描的项目名称</param>
     /// <param name="token">取消令牌</param>
-    Task ScanAllAsync(IProgress<string> progress, CancellationToken token, bool onlyCleanOldFiles = true, int minimumAgeHours = 48);
+    Task ScanAllAsync(IProgress<string> progress, CancellationToken token, bool onlyCleanOldFiles = false, int minimumAgeHours = 24);
 
     /// <summary>
     /// 清理选中的项目列表
@@ -30,7 +30,7 @@ public interface ICleanupService
     /// <param name="progress">进度报告回调，报告(项目名, 进度百分比)</param>
     /// <param name="token">取消令牌</param>
     /// <returns>清理结果统计</returns>
-    Task<CleanupResult> CleanAsync(IEnumerable<CleanupItem> items, IProgress<(string, int)> progress, CancellationToken token, bool onlyCleanOldFiles = true, int minimumAgeHours = 48);
+    Task<CleanupResult> CleanAsync(IEnumerable<CleanupItem> items, IProgress<(string, int)> progress, CancellationToken token, bool onlyCleanOldFiles = false, int minimumAgeHours = 24);
 
     /// <summary>获取预定义的清理位置列表（系统预定义路径）</summary>
     List<(string Name, string Path, CleanupSafetyLevel Level)> GetPredefinedLocations();
@@ -162,7 +162,7 @@ public class CleanupResult
 /// C盘清理服务实现
 /// 负责扫描存储清理项的大小并执行批量清理
 /// 特性：
-///   - 48小时 LastWriteTime 过滤（仅清除 48 小时前的文件）
+///   - 可选 24 小时 LastWriteTime 过滤（启用时仅清除 24 小时前的文件）
 ///   - 每批 500 个文件分批处理
 ///   - 跳过符号链接
 ///   - 受保护路径不删除
@@ -488,7 +488,7 @@ public class CleanupService : ICleanupService
     /// 扫描所有清理项的文件大小
     /// 使用 Task.Run 在后台线程执行，通过 IProgress 报告进度
     /// </summary>
-    public async Task ScanAllAsync(IProgress<string> progress, CancellationToken token, bool onlyCleanOldFiles = true, int minimumAgeHours = 48)
+    public async Task ScanAllAsync(IProgress<string> progress, CancellationToken token, bool onlyCleanOldFiles = false, int minimumAgeHours = 24)
     {
         // 重置所有项目的统计数据
         Items.ForEach(i => { i.TotalSize = 0; i.FileCount = 0; });
@@ -521,7 +521,7 @@ public class CleanupService : ICleanupService
     /// 扫描单个清理项的大小
     /// 遍历指定路径下所有文件，计算总大小和文件数
     /// 使用 EnumerateFiles 流式枚举（不一次性加载所有条目）
-    /// 跳过符号链接，不再做 48 小时过滤（用户主动清理时应统计全部）
+    /// 跳过符号链接；年龄过滤为可选项，默认不启用
     /// </summary>
     private void ScanItemSize(CleanupItem item, CancellationToken token, bool onlyCleanOldFiles, int minimumAgeHours)
     {
@@ -672,8 +672,8 @@ public class CleanupService : ICleanupService
         IEnumerable<CleanupItem> items,
         IProgress<(string, int)> progress,
         CancellationToken token,
-        bool onlyCleanOldFiles = true,
-        int minimumAgeHours = 48)
+        bool onlyCleanOldFiles = false,
+        int minimumAgeHours = 24)
     {
         var result = new CleanupResult();
         const int batchSize = 500; // 每批 500 个文件

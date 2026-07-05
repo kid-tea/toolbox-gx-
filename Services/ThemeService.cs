@@ -9,7 +9,10 @@ public enum ThemeType
     Light,
 
     /// <summary>暗色主题</summary>
-    Dark
+    Dark,
+
+    /// <summary>AI Agent 仪表盘风格</summary>
+    Dashboard
 }
 
 /// <summary>
@@ -40,6 +43,13 @@ public class ThemeService : IThemeService
     /// <summary>主题切换事件</summary>
     public event Action<ThemeType>? ThemeChanged;
 
+    public static ThemeType ParseTheme(string? theme)
+    {
+        return Enum.TryParse(theme, ignoreCase: true, out ThemeType parsed)
+            ? parsed
+            : ThemeType.Light;
+    }
+
     /// <summary>
     /// 设置主题
     /// </summary>
@@ -47,8 +57,8 @@ public class ThemeService : IThemeService
     public void SetTheme(ThemeType theme)
     {
         CurrentTheme = theme;
-        ThemeChanged?.Invoke(theme);
         ApplyTheme(theme);
+        ThemeChanged?.Invoke(theme);
     }
 
     /// <summary>
@@ -65,11 +75,16 @@ public class ThemeService : IThemeService
         app.Resources.MergedDictionaries.Clear();
 
         // 根据主题类型加载对应的 ResourceDictionary
+        var source = theme switch
+        {
+            ThemeType.Dark => "pack://application:,,,/Resources/DarkTheme.xaml",
+            ThemeType.Dashboard => "pack://application:,,,/Resources/DashboardTheme.xaml",
+            _ => "pack://application:,,,/Resources/LightTheme.xaml"
+        };
+
         var themeDict = new ResourceDictionary
         {
-            Source = new Uri(theme == ThemeType.Dark
-                ? "pack://application:,,,/Resources/DarkTheme.xaml"
-                : "pack://application:,,,/Resources/LightTheme.xaml")
+            Source = new Uri(source)
         };
         app.Resources.MergedDictionaries.Add(themeDict);
     }

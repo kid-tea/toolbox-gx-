@@ -73,7 +73,7 @@ public partial class App : Application
         // ===== 第 4 步：应用主题 =====
         var theme = ServiceProvider.GetRequiredService<IThemeService>();
         // settings 已通过 ?? 操作符确保非 null，显式声明以消除编译器警告
-        theme.SetTheme(settings!.Theme == "Dark" ? ThemeType.Dark : ThemeType.Light);
+        theme.SetTheme(ThemeService.ParseTheme(settings!.Theme));
 
         // ===== 第 5 步：注册导航项 =====
         var nav = ServiceProvider.GetRequiredService<INavigationService>();
@@ -225,6 +225,13 @@ public partial class App : Application
         services.AddTransient<RegistryCleanerViewModel>();
         services.AddTransient<RegistryCleanerView>();
 
+        // ===== AI Agent 检验（Singleton 服务 + Transient ViewModel/View） =====
+        services.AddSingleton<IAgentEnvironmentService, AgentEnvironmentService>();
+        services.AddSingleton<IAgentReportExportService, AgentReportExportService>();
+        services.AddSingleton<IAgentTokenHistoryService, AgentTokenHistoryService>();
+        services.AddTransient<AgentInspectorViewModel>();
+        services.AddTransient<AgentInspectorView>();
+
         // ===== ViewModel（Transient — 每次导航创建新实例） =====
         services.AddTransient<MainViewModel>();
 
@@ -343,6 +350,17 @@ public partial class App : Application
             Icon = "⏰",
             ViewType = typeof(Views.ScheduledShutdownView),
             RequiresAdmin = false
+        });
+
+        // 🔧 调试功能 — 2.0.0 预览功能，1.0.4 正式版默认不开放
+        nav.NavItems.Add(new NavItem
+        {
+            Name = "AI Agent 检验（2.0.0 预览）",
+            Category = "🔧 调试功能",
+            Icon = "🧪",
+            ViewType = typeof(Views.AgentInspectorView),
+            RequiresAdmin = false,
+            IsPendingOptimization = true
         });
 
         // 🎯 日常效率 — 日常使用的高频小工具

@@ -32,6 +32,7 @@ public partial class FileShredderViewModel : ViewModelBase
     public ObservableCollection<string> OperationLogs { get; } = new();
 
     /// <summary>是否有文件</summary>
+    [NotifyCanExecuteChangedFor(nameof(ExecuteShredCommand))]
     [ObservableProperty]
     private bool _hasFiles;
 

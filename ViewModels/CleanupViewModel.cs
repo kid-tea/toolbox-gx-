@@ -59,11 +59,11 @@ public partial class CleanupViewModel : ViewModelBase
 
     /// <summary>Only scan and clean files older than the configured age.</summary>
     [ObservableProperty]
-    private bool _onlyCleanOldFiles = true;
+    private bool _onlyCleanOldFiles = false;
 
     /// <summary>Minimum age in hours for the optional cleanup age filter.</summary>
     [ObservableProperty]
-    private int _minimumFileAgeHours = 48;
+    private int _minimumFileAgeHours = 24;
 
     /// <summary>是否启用定时清理</summary>
     [ObservableProperty]

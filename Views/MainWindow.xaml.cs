@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using Toolbox.Models;
 using Toolbox.Services;
 using Toolbox.ViewModels;
@@ -15,9 +16,26 @@ namespace Toolbox.Views;
 /// </summary>
 public partial class MainWindow : Window
 {
+    private const double ExpandedSidebarWidth = 260;
+    private const double CollapsedSidebarWidth = 26;
+
+    public static readonly DependencyProperty IsSidebarExpandedProperty =
+        DependencyProperty.Register(
+            nameof(IsSidebarExpanded),
+            typeof(bool),
+            typeof(MainWindow),
+            new PropertyMetadata(true));
+
     private readonly INavigationService _nav;
     private readonly ILogService _log;
     private readonly IConfigService _config;
+    private readonly IThemeService _theme;
+
+    public bool IsSidebarExpanded
+    {
+        get => (bool)GetValue(IsSidebarExpandedProperty);
+        set => SetValue(IsSidebarExpandedProperty, value);
+    }
 
     // 全局快捷键 ID 常量
     private const int HOTKEY_ID_SCREENSHOT = 1;
@@ -33,7 +51,7 @@ public partial class MainWindow : Window
     /// <summary>
     /// 构造函数，通过 DI 获取导航和日志服务
     /// </summary>
-    public MainWindow(INavigationService nav, ILogService log, IConfigService config)
+    public MainWindow(INavigationService nav, ILogService log, IConfigService config, IThemeService theme)
     {
         InitializeComponent();
 
@@ -41,16 +59,21 @@ public partial class MainWindow : Window
         Icon = System.Windows.Media.Imaging.BitmapFrame.Create(
             new Uri("pack://application:,,,/app.png", UriKind.Absolute));
 
+        SetNormalShellResources();
+
         _nav = nav;
         _log = log;
         _config = config;
+        _theme = theme;
 
         // 从 DI 容器获取 MainViewModel 并绑定为 DataContext
         var vm = App.ServiceProvider.GetRequiredService<MainViewModel>();
         DataContext = vm;
+        SetSidebarExpanded(true);
 
         // 订阅导航变化事件，自动切换内容区
         _nav.NavigationChanged += OnNavigationChanged;
+        _theme.ThemeChanged += OnThemeChanged;
 
         // 窗口加载完成后注册全局快捷键
         Loaded += RegisterGlobalHotkeys;
@@ -75,6 +98,17 @@ public partial class MainWindow : Window
             ContentHost.Content = null;
     }
 
+    private void OnThemeChanged(ThemeType theme)
+    {
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            if (_nav.CurrentViewType != null)
+                LoadContent(_nav.CurrentViewType);
+            else
+                ApplyWindowChromeForView(typeof(object));
+        }));
+    }
+
     /// <summary>
     /// 加载指定类型的 View 到内容区
     /// 如果 View 未实现（如占位功能），则显示占位 TextBlock
@@ -89,6 +123,7 @@ public partial class MainWindow : Window
             if (view != null)
             {
                 ContentHost.Content = view;
+                ApplyWindowChromeForView(viewType);
             }
             else
             {
@@ -102,6 +137,7 @@ public partial class MainWindow : Window
                     VerticalAlignment = VerticalAlignment.Center
                 };
                 ContentHost.Content = placeholder;
+                ApplyWindowChromeForView(viewType);
             }
         }
         catch (Exception ex)
@@ -119,6 +155,63 @@ public partial class MainWindow : Window
                 TextWrapping = TextWrapping.Wrap
             };
         }
+    }
+
+    private void ApplyWindowChromeForView(Type viewType)
+    {
+        if (viewType == typeof(AgentInspectorView))
+        {
+            SetAgentInspectorShellResources();
+            Background = GetBrush(0x11, 0x13, 0x1A);
+            SidebarBorder.Background = Resources["ShellSidebarBrush"] as Brush;
+            SidebarBorder.BorderBrush = Resources["ShellBorderBrush"] as Brush;
+            ContentFrame.Background = GetBrush(0x11, 0x13, 0x1A);
+            ContentFrame.BorderBrush = Resources["ShellBorderBrush"] as Brush;
+            return;
+        }
+
+        SetNormalShellResources();
+        Background = Application.Current.Resources["BackgroundBrush"] as Brush;
+        SidebarBorder.Background = Resources["ShellSidebarBrush"] as Brush;
+        SidebarBorder.BorderBrush = Resources["ShellBorderBrush"] as Brush;
+        ContentFrame.Background = Application.Current.Resources["ContentBrush"] as Brush;
+        ContentFrame.BorderBrush = Resources["ShellBorderBrush"] as Brush;
+    }
+
+    private void SetNormalShellResources()
+    {
+        SetShellResource("ShellSidebarBrush", "SidebarBrush", GetBrush(0xF8, 0xFA, 0xFC));
+        SetShellResource("ShellBorderBrush", "BorderBrush", GetBrush(0xE2, 0xE8, 0xF0));
+        SetShellResource("ShellSidebarHoverBrush", "SidebarHoverBrush", GetBrush(0xF1, 0xF5, 0xF9));
+        SetShellResource("ShellAccentLightBrush", "AccentLightBrush", GetBrush(0xDB, 0xEA, 0xFE));
+        SetShellResource("ShellInputBackgroundBrush", "InputBackgroundBrush", GetBrush(0xFF, 0xFF, 0xFF));
+        SetShellResource("ShellAccentBrush", "AccentBrush", GetBrush(0x3B, 0x82, 0xF6));
+        SetShellResource("ShellTextPrimaryBrush", "TextPrimaryBrush", GetBrush(0x0F, 0x17, 0x2A));
+        SetShellResource("ShellTextSecondaryBrush", "TextSecondaryBrush", GetBrush(0x47, 0x55, 0x69));
+        SetShellResource("ShellTextMutedBrush", "TextMutedBrush", GetBrush(0x94, 0xA3, 0xB8));
+    }
+
+    private void SetAgentInspectorShellResources()
+    {
+        Resources["ShellSidebarBrush"] = GetBrush(0x17, 0x1A, 0x23);
+        Resources["ShellBorderBrush"] = GetBrush(0x2C, 0x33, 0x44);
+        Resources["ShellSidebarHoverBrush"] = GetBrush(0x22, 0x28, 0x38);
+        Resources["ShellAccentLightBrush"] = GetBrush(0x24, 0x2A, 0x3A);
+        Resources["ShellInputBackgroundBrush"] = GetBrush(0x20, 0x25, 0x32);
+        Resources["ShellAccentBrush"] = GetBrush(0x76, 0x67, 0xF2);
+        Resources["ShellTextPrimaryBrush"] = GetBrush(0xF3, 0xF6, 0xFF);
+        Resources["ShellTextSecondaryBrush"] = GetBrush(0xC4, 0xCC, 0xE0);
+        Resources["ShellTextMutedBrush"] = GetBrush(0x8E, 0x99, 0xB5);
+    }
+
+    private void SetShellResource(string shellKey, string appKey, Brush fallback)
+    {
+        Resources[shellKey] = Application.Current.Resources[appKey] as Brush ?? fallback;
+    }
+
+    private static SolidColorBrush GetBrush(byte r, byte g, byte b)
+    {
+        return new SolidColorBrush(Color.FromRgb(r, g, b));
     }
 
     /// <summary>
@@ -153,6 +246,18 @@ public partial class MainWindow : Window
             _nav.SelectedItem = item;
             _log.LogInfo($"Navigated to: {item.Name}");
         }
+    }
+
+    private void OnSidebarToggleClick(object sender, RoutedEventArgs e)
+    {
+        SetSidebarExpanded(!IsSidebarExpanded);
+    }
+
+    private void SetSidebarExpanded(bool expanded)
+    {
+        IsSidebarExpanded = expanded;
+        if (SidebarColumn != null)
+            SidebarColumn.Width = new GridLength(expanded ? ExpandedSidebarWidth : CollapsedSidebarWidth);
     }
 
     /// <summary>
@@ -376,6 +481,8 @@ public partial class MainWindow : Window
     {
         try
         {
+            _theme.ThemeChanged -= OnThemeChanged;
+
             var hwnd = new WindowInteropHelper(this).Handle;
 
             // 卸载已注册的快捷键

@@ -15,7 +15,7 @@ public class AppSettings
     /// <summary>界面语言：zh-CN / en-US</summary>
     public string Language { get; set; } = "zh-CN";
 
-    /// <summary>主题：Light / Dark</summary>
+    /// <summary>主题：Light / Dark / Dashboard</summary>
     public string Theme { get; set; } = "Light";
 
     // ==================== 主界面外观设置 ====================
@@ -109,7 +109,7 @@ public class AppSettings
 
     // ==================== 调试模式 ====================
 
-    /// <summary>调试模式，开启后可访问待优化功能（截屏、磁盘空间分析、任务）</summary>
+    /// <summary>调试模式，开启后可访问待优化功能（截屏、磁盘空间分析、任务、AI Agent 检验）</summary>
     public bool DebugMode { get; set; }
 
     // ==================== 配置文件完整性 ====================

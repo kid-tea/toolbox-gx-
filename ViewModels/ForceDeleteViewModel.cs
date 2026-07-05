@@ -25,6 +25,7 @@ public partial class ForceDeleteViewModel : ViewModelBase
     /// <summary>
     /// 是否已选择文件（用于启用/禁用删除按钮）
     /// </summary>
+    [NotifyCanExecuteChangedFor(nameof(ExecuteDeleteCommand))]
     [ObservableProperty]
     private bool _hasFiles;
 

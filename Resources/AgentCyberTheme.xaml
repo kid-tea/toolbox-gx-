@@ -1,0 +1,278 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Color x:Key="CyberBlack">#11131A</Color>
+    <Color x:Key="CyberCarbon">#171A23</Color>
+    <Color x:Key="CyberPanel">#1B1F2A</Color>
+    <Color x:Key="CyberCyan">#6E63F2</Color>
+    <Color x:Key="CyberBlue">#64A8FF</Color>
+    <Color x:Key="CyberMagenta">#FF6B7A</Color>
+    <Color x:Key="CyberOrange">#FFD166</Color>
+    <Color x:Key="CyberPurple">#7667F2</Color>
+    <Color x:Key="CyberGreen">#10D08B</Color>
+    <Color x:Key="CyberText">#F3F6FF</Color>
+    <Color x:Key="CyberMuted">#9AA7C2</Color>
+
+    <SolidColorBrush x:Key="CyberBackgroundBrush" Color="{StaticResource CyberBlack}"/>
+    <SolidColorBrush x:Key="CyberCarbonBrush" Color="{StaticResource CyberCarbon}"/>
+    <SolidColorBrush x:Key="CyberPanelBrush" Color="{StaticResource CyberPanel}"/>
+    <SolidColorBrush x:Key="CyberCyanBrush" Color="{StaticResource CyberCyan}"/>
+    <SolidColorBrush x:Key="CyberBlueBrush" Color="{StaticResource CyberBlue}"/>
+    <SolidColorBrush x:Key="CyberMagentaBrush" Color="{StaticResource CyberMagenta}"/>
+    <SolidColorBrush x:Key="CyberOrangeBrush" Color="{StaticResource CyberOrange}"/>
+    <SolidColorBrush x:Key="CyberPurpleBrush" Color="{StaticResource CyberPurple}"/>
+    <SolidColorBrush x:Key="CyberGreenBrush" Color="{StaticResource CyberGreen}"/>
+    <SolidColorBrush x:Key="CyberTextBrush" Color="{StaticResource CyberText}"/>
+    <SolidColorBrush x:Key="CyberMutedBrush" Color="{StaticResource CyberMuted}"/>
+    <SolidColorBrush x:Key="CyberLineBrush" Color="#2C3344"/>
+
+    <DropShadowEffect x:Key="CyberCyanGlow" Color="#6E63F2" BlurRadius="8" ShadowDepth="0" Opacity="0.10"/>
+    <DropShadowEffect x:Key="CyberSoftGlow" Color="#000000" BlurRadius="10" ShadowDepth="0" Opacity="0.08"/>
+    <DropShadowEffect x:Key="CyberRiskGlow" Color="#FF6B7A" BlurRadius="8" ShadowDepth="0" Opacity="0.12"/>
+
+    <DrawingBrush x:Key="CyberGridBrush" TileMode="Tile" Viewport="0,0,28,28" ViewportUnits="Absolute">
+        <DrawingBrush.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="0,0,28,28"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#06000000">
+                    <GeometryDrawing.Geometry>
+                        <GeometryGroup>
+                            <RectangleGeometry Rect="0,0,1,1"/>
+                            <RectangleGeometry Rect="14,14,1,1"/>
+                        </GeometryGroup>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing>
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#081D2432" Thickness="0.6"/>
+                    </GeometryDrawing.Pen>
+                    <GeometryDrawing.Geometry>
+                        <GeometryGroup>
+                            <LineGeometry StartPoint="0,0" EndPoint="28,0"/>
+                            <LineGeometry StartPoint="0,0" EndPoint="0,28"/>
+                        </GeometryGroup>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingBrush.Drawing>
+    </DrawingBrush>
+
+    <Style x:Key="CyberPanelStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource CyberPanelBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource CyberLineBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="16"/>
+    </Style>
+
+    <Style x:Key="CyberButtonStyle" TargetType="Button">
+        <Setter Property="Background">
+            <Setter.Value>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#7567F2" Offset="0"/>
+                    <GradientStop Color="#5FA8FF" Offset="1"/>
+                </LinearGradientBrush>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Foreground" Value="#FFFFFF"/>
+        <Setter Property="BorderBrush" Value="#6F7BFF"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="16,9"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontFamily" Value="Consolas"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Opacity" Value="0.92"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="CyberGhostButtonStyle" TargetType="Button" BasedOn="{StaticResource CyberButtonStyle}">
+        <Setter Property="Background" Value="#222838"/>
+        <Setter Property="Foreground" Value="{StaticResource CyberTextBrush}"/>
+    </Style>
+
+    <Style x:Key="CyberHeaderTextStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource CyberTextBrush}"/>
+        <Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei UI, Consolas"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+    </Style>
+
+    <Style x:Key="CyberMutedTextStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource CyberMutedBrush}"/>
+        <Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei UI, Consolas"/>
+    </Style>
+
+    <Style x:Key="CyberProgressBarStyle" TargetType="ProgressBar">
+        <Setter Property="Height" Value="5"/>
+        <Setter Property="Foreground" Value="{StaticResource CyberPurpleBrush}"/>
+        <Setter Property="Background" Value="#252B3A"/>
+    </Style>
+
+    <Style x:Key="CyberComboBoxItemStyle" TargetType="ComboBoxItem">
+        <Setter Property="Background" Value="#202532"/>
+        <Setter Property="Foreground" Value="{StaticResource CyberTextBrush}"/>
+        <Setter Property="Padding" Value="10,7"/>
+        <Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei UI, Consolas"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBoxItem">
+                    <Border x:Name="ItemBorder"
+                            Background="{TemplateBinding Background}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="ItemBorder" Property="Background" Value="#2A3042"/>
+                            <Setter Property="Foreground" Value="{StaticResource CyberTextBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="ItemBorder" Property="Background" Value="#302D4B"/>
+                            <Setter Property="Foreground" Value="{StaticResource CyberTextBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="CyberComboBoxStyle" TargetType="ComboBox">
+        <Setter Property="Background" Value="#202532"/>
+        <Setter Property="Foreground" Value="{StaticResource CyberTextBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource CyberLineBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Height" Value="34"/>
+        <Setter Property="Padding" Value="10,0"/>
+        <Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei UI, Consolas"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="ItemContainerStyle" Value="{StaticResource CyberComboBoxItemStyle}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBox">
+                    <Grid>
+                        <ToggleButton x:Name="ToggleButton"
+                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                      Focusable="False"
+                                      ClickMode="Press"
+                                      Background="Transparent"
+                                      BorderThickness="0">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <ContentPresenter/>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                            <Border x:Name="BoxBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="5"
+                                    Padding="{TemplateBinding Padding}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{TemplateBinding SelectionBoxItem}"
+                                               Foreground="{TemplateBinding Foreground}"
+                                               VerticalAlignment="Center"
+                                               HorizontalAlignment="Left"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <Path Grid.Column="1"
+                                          Data="M 0 0 L 4 4 L 8 0 Z"
+                                          Fill="{StaticResource CyberMutedBrush}"
+                                          Width="8"
+                                          Height="4"
+                                          Margin="12,0,0,0"
+                                          VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                        </ToggleButton>
+                        <Popup x:Name="PART_Popup"
+                               AllowsTransparency="True"
+                               Focusable="False"
+                               IsOpen="{TemplateBinding IsDropDownOpen}"
+                               Placement="Bottom"
+                               PopupAnimation="Fade">
+                            <Border Background="#202532"
+                                    BorderBrush="{StaticResource CyberLineBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="5"
+                                    Width="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                    MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                <ScrollViewer CanContentScroll="True">
+                                    <ItemsPresenter/>
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger SourceName="ToggleButton" Property="IsMouseOver" Value="True">
+                            <Setter TargetName="BoxBorder" Property="BorderBrush" Value="{StaticResource CyberPurpleBrush}"/>
+                            <Setter TargetName="BoxBorder" Property="Background" Value="#242A3A"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.55"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="CyberTabControlStyle" TargetType="TabControl">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
+    <Style x:Key="CyberTabItemStyle" TargetType="TabItem">
+        <Setter Property="Foreground" Value="{StaticResource CyberMutedBrush}"/>
+        <Setter Property="Background" Value="#1B1F2A"/>
+        <Setter Property="BorderBrush" Value="#2C3344"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="14,7"/>
+        <Setter Property="Margin" Value="0,0,6,0"/>
+        <Setter Property="FontFamily" Value="Consolas"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabItem">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4,4,0,0"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter ContentSource="Header"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource CyberTextBrush}"/>
+                <Setter Property="Background" Value="#242A3A"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+</ResourceDictionary>

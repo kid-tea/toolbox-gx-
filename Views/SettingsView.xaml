@@ -38,23 +38,52 @@
                             </DockPanel>
                         </Border>
 
-                        <!-- 主题切换 -->
-                        <GroupBox Header="主题" Margin="0,0,0,12" Padding="12"
+                        <!-- 主题风格 -->
+                        <GroupBox Header="主题风格" Margin="0,0,0,12" Padding="12"
                                   Foreground="{StaticResource TextPrimaryBrush}"
                                   BorderBrush="{StaticResource BorderBrush}">
                             <StackPanel>
-                                <TextBlock Text="当前主题将作用于整个工具箱界面" Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,8"/>
-                                <Button Content="切换主题"
-                                        Command="{Binding ToggleThemeCommand}"
-                                        Padding="12,8" HorizontalAlignment="Left"
-                                        Background="{StaticResource AccentBrush}" Foreground="White"
-                                        BorderThickness="0" Cursor="Hand">
-                                    <Button.Resources>
-                                        <Style TargetType="Border">
-                                            <Setter Property="CornerRadius" Value="4"/>
-                                        </Style>
-                                    </Button.Resources>
-                                </Button>
+                                <TextBlock Text="选择整个工具箱使用的界面风格，修改后立即生效" Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,8"/>
+                                <UniformGrid Columns="2" HorizontalAlignment="Left">
+                                    <Button Content="经典风格"
+                                            Command="{Binding SetClassicThemeCommand}"
+                                            Padding="16,9" Width="150" Margin="0,0,8,0"
+                                            BorderThickness="1" Cursor="Hand">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Background" Value="{StaticResource InputBackgroundBrush}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsClassicThemeSelected}" Value="True">
+                                                        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <Button Content="AI Agent 仪表盘"
+                                            Command="{Binding SetDashboardThemeCommand}"
+                                            Padding="16,9" Width="150"
+                                            BorderThickness="1" Cursor="Hand">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Background" Value="{StaticResource InputBackgroundBrush}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsDashboardThemeSelected}" Value="True">
+                                                        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </UniformGrid>
                             </StackPanel>
                         </GroupBox>
 
@@ -381,7 +410,7 @@
                             <StackPanel>
                                 <TextBlock Text="调试模式" FontWeight="Bold" FontSize="14"
                                            Foreground="{StaticResource TextPrimaryBrush}"/>
-                                <TextBlock Text="开启后可访问标记为「待优化」的功能页面（截屏、磁盘空间分析、任务）。"
+                                <TextBlock Text="开启后可访问标记为「待优化」的功能页面（截屏、磁盘空间分析、任务、AI Agent 检验）。"
                                            Foreground="{StaticResource TextMutedBrush}" FontSize="12"
                                            Margin="0,4,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
@@ -391,7 +420,7 @@
                                   Foreground="{StaticResource TextPrimaryBrush}"
                                   BorderBrush="{StaticResource BorderBrush}">
                             <StackPanel>
-                                <CheckBox Content="启用待优化功能（截屏 / 磁盘空间分析 / 任务）"
+                                <CheckBox Content="启用待优化功能（截屏 / 磁盘空间分析 / 任务 / AI Agent 检验）"
                                           IsChecked="{Binding DebugMode}"
                                           Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
                                 <TextBlock Text="注意：这些功能可能存在未修复的缺陷，仅供调试和测试使用。"

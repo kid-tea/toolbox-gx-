@@ -26,6 +26,10 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private string _currentTheme = "Light";
 
+    public bool IsClassicThemeSelected => !string.Equals(CurrentTheme, nameof(ThemeType.Dashboard), StringComparison.OrdinalIgnoreCase);
+
+    public bool IsDashboardThemeSelected => string.Equals(CurrentTheme, nameof(ThemeType.Dashboard), StringComparison.OrdinalIgnoreCase);
+
     /// <summary>当前语言（zh-CN/en-US）</summary>
     [ObservableProperty]
     private string _currentLanguage = "zh-CN";
@@ -130,7 +134,7 @@ public partial class SettingsViewModel : ViewModelBase
 
     /// <summary>版本号</summary>
     [ObservableProperty]
-    private string _appVersion = "1.0.3";
+    private string _appVersion = "1.0.4";
 
     /// <summary>更新状态</summary>
     [ObservableProperty]
@@ -260,9 +264,32 @@ public partial class SettingsViewModel : ViewModelBase
     [RelayCommand]
     private void ToggleTheme()
     {
-        CurrentTheme = CurrentTheme == "Dark" ? "Light" : "Dark";
-        _theme.SetTheme(CurrentTheme == "Dark" ? ThemeType.Dark : ThemeType.Light);
+        ApplyTheme(CurrentTheme == "Dark" ? ThemeType.Light : ThemeType.Dark);
+    }
+
+    [RelayCommand]
+    private void SetClassicTheme()
+    {
+        ApplyTheme(ThemeType.Light);
+    }
+
+    [RelayCommand]
+    private void SetDashboardTheme()
+    {
+        ApplyTheme(ThemeType.Dashboard);
+    }
+
+    private void ApplyTheme(ThemeType theme)
+    {
+        CurrentTheme = theme.ToString();
         SaveSettings();
+        _theme.SetTheme(theme);
+    }
+
+    partial void OnCurrentThemeChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsClassicThemeSelected));
+        OnPropertyChanged(nameof(IsDashboardThemeSelected));
     }
 
     /// <summary>

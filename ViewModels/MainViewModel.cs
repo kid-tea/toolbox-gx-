@@ -97,9 +97,21 @@ public partial class MainViewModel : ViewModelBase
 
         // 共享导航服务的 NavItems 集合
         _navItems = nav.NavItems;
+        InitializeDefaultCollapsedCategories();
 
         // 同步主题状态
-        _isDarkTheme = _theme.CurrentTheme == ThemeType.Dark;
+        _isDarkTheme = _theme.CurrentTheme is ThemeType.Dark or ThemeType.Dashboard;
+    }
+
+    private void InitializeDefaultCollapsedCategories()
+    {
+        CollapsedCategories.Clear();
+
+        foreach (var category in NavItems.Select(item => item.Category).Distinct())
+        {
+            if (!category.Contains("存储清理", StringComparison.Ordinal))
+                CollapsedCategories.Add(category);
+        }
     }
 
     /// <summary>

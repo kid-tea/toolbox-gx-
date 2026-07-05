@@ -83,7 +83,7 @@ public partial class DuplicateFinderViewModel : ViewModelBase
                         {
                             Path = drive.Name,
                             DisplayName = $"{drive.Name} ({drive.VolumeLabel ?? "本地磁盘"})",
-                            IsSelected = false
+                            IsSelected = true
                         });
                     }
                 }
@@ -107,10 +107,6 @@ public partial class DuplicateFinderViewModel : ViewModelBase
                 IsSelected = false
             });
 
-            // 默认全选
-            foreach (var p in ScanPaths)
-                p.IsSelected = true;
-
             _log.LogInfo($"加载了 {ScanPaths.Count} 个扫描路径");
         }
         catch (Exception ex)
@@ -128,25 +124,32 @@ public partial class DuplicateFinderViewModel : ViewModelBase
     {
         try
         {
-            var drives = ScanPaths.Where(p => p.Path.EndsWith(":\\", StringComparison.OrdinalIgnoreCase)).ToList();
-            if (drives.Count == 0)
-            {
-                StatusMessage = "未找到可用的本地固定磁盘";
-                return;
-            }
-
-            var selected = string.Join("、", drives.Where(d => d.IsSelected).Select(d => d.DisplayName));
-            var message = "请先在此功能中使用默认磁盘列表进行勾选/取消勾选。\n\n" +
-                          "当前可选磁盘：\n" + string.Join("\n", drives.Select(d => $"- {d.DisplayName}")) +
-                          "\n\n当前已选：" + (string.IsNullOrWhiteSpace(selected) ? "无" : selected);
-            MessageBox.Show(message, "选择扫描路径", MessageBoxButton.OK, MessageBoxImage.Information);
-            StatusMessage = "已显示可选扫描路径，请勾选需要扫描的磁盘后再开始扫描";
+            ApplySmartScanSelection();
         }
         catch (Exception ex)
         {
             StatusMessage = $"选择扫描路径失败: {ex.Message}";
             _log.LogError("选择扫描路径失败", ex);
         }
+    }
+
+    private void ApplySmartScanSelection()
+    {
+        var driveRoots = ScanPaths
+            .Where(p => p.Path.EndsWith(":\\", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (driveRoots.Count == 0)
+        {
+            StatusMessage = "未找到可用的本地固定磁盘";
+            return;
+        }
+
+        foreach (var path in ScanPaths)
+            path.IsSelected = driveRoots.Contains(path);
+
+        var selected = string.Join("、", driveRoots.Select(d => d.Path.TrimEnd('\\')));
+        StatusMessage = $"已智能选择本地磁盘：{selected}。用户目录和桌面可按需手动勾选。";
     }
     /// <summary>
     /// 开始扫描重复文件命令

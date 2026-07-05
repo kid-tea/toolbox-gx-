@@ -59,12 +59,11 @@ public partial class MainWindow : Window
         Icon = System.Windows.Media.Imaging.BitmapFrame.Create(
             new Uri("pack://application:,,,/app.png", UriKind.Absolute));
 
-        SetNormalShellResources();
-
         _nav = nav;
         _log = log;
         _config = config;
         _theme = theme;
+        SetNormalShellResources();
 
         // 从 DI 容器获取 MainViewModel 并绑定为 DataContext
         var vm = App.ServiceProvider.GetRequiredService<MainViewModel>();
@@ -159,17 +158,6 @@ public partial class MainWindow : Window
 
     private void ApplyWindowChromeForView(Type viewType)
     {
-        if (viewType == typeof(AgentInspectorView))
-        {
-            SetAgentInspectorShellResources();
-            Background = GetBrush(0x11, 0x13, 0x1A);
-            SidebarBorder.Background = Resources["ShellSidebarBrush"] as Brush;
-            SidebarBorder.BorderBrush = Resources["ShellBorderBrush"] as Brush;
-            ContentFrame.Background = GetBrush(0x11, 0x13, 0x1A);
-            ContentFrame.BorderBrush = Resources["ShellBorderBrush"] as Brush;
-            return;
-        }
-
         SetNormalShellResources();
         Background = Application.Current.Resources["BackgroundBrush"] as Brush;
         SidebarBorder.Background = Resources["ShellSidebarBrush"] as Brush;
@@ -189,6 +177,18 @@ public partial class MainWindow : Window
         SetShellResource("ShellTextPrimaryBrush", "TextPrimaryBrush", GetBrush(0x0F, 0x17, 0x2A));
         SetShellResource("ShellTextSecondaryBrush", "TextSecondaryBrush", GetBrush(0x47, 0x55, 0x69));
         SetShellResource("ShellTextMutedBrush", "TextMutedBrush", GetBrush(0x94, 0xA3, 0xB8));
+
+        if (_theme.CurrentTheme == ThemeType.ContrastPro)
+        {
+            Resources["ShellSidebarBrush"] = GetBrush(0x16, 0x1B, 0x26);
+            Resources["ShellSidebarHoverBrush"] = GetBrush(0x22, 0x2A, 0x38);
+            Resources["ShellAccentLightBrush"] = GetBrush(0x0F, 0x76, 0x6E);
+            Resources["ShellInputBackgroundBrush"] = GetBrush(0x1F, 0x29, 0x37);
+            Resources["ShellBorderBrush"] = GetBrush(0x47, 0x55, 0x69);
+            Resources["ShellTextPrimaryBrush"] = GetBrush(0xF8, 0xFA, 0xFC);
+            Resources["ShellTextSecondaryBrush"] = GetBrush(0xCB, 0xD5, 0xE1);
+            Resources["ShellTextMutedBrush"] = GetBrush(0x94, 0xA3, 0xB8);
+        }
     }
 
     private void SetAgentInspectorShellResources()
@@ -237,6 +237,8 @@ public partial class MainWindow : Window
                 var settings = _config.LoadConfig<AppSettings>(_config.SettingsFilePath) ?? new AppSettings();
                 if (!settings.DebugMode)
                 {
+                    if (ShowPendingOptimizationMessage(item.Name))
+                        return;
                     MessageBox.Show($"「{item.Name}」功能正在优化中，暂不可用。\n\n后续版本将重新开放。\n\n提示：可在 设置 → 🔧 调试 中开启调试模式以访问待优化功能。",
                         "功能待优化", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
@@ -251,6 +253,18 @@ public partial class MainWindow : Window
     private void OnSidebarToggleClick(object sender, RoutedEventArgs e)
     {
         SetSidebarExpanded(!IsSidebarExpanded);
+    }
+
+    private static bool ShowPendingOptimizationMessage(string featureName)
+    {
+        MessageBox.Show(
+            $"\u300C{featureName}\u300D\u6B63\u5728\u4F18\u5316\u4E2D\uFF0C\u6682\u65F6\u4E0D\u5EFA\u8BAE\u4F5C\u4E3A\u6B63\u5F0F\u529F\u80FD\u4F7F\u7528\u3002\n\n" +
+            "\u540E\u7EED\u7248\u672C\u4F1A\u91CD\u65B0\u5F00\u653E\u3002\n\n" +
+            "\u5982\u9700\u9884\u89C8\uFF0C\u53EF\u5728\u300C\u8BBE\u7F6E\u300D\u4E2D\u5F00\u542F\u8C03\u8BD5\u6A21\u5F0F\u3002",
+            "\u529F\u80FD\u5F85\u4F18\u5316",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+        return true;
     }
 
     private void SetSidebarExpanded(bool expanded)

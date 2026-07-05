@@ -1,8 +1,8 @@
 <!--
-    SettingsView.xaml — 设置页面
-    四个 TabItem 标签页：外观 / 快捷键 / 通知 / 关于
+    SettingsView.xaml - 设置页面
+    四个 TabItem 标签页：外观 / 快捷键 / 通知 / 调试 / 关于
     即时预览：外观修改在设置页面内即时生效
-    快捷键录制：点击区域进入录制模式 → 按下新组合键 → 冲突检测 → 保存
+    快捷键录制：点击区域进入录制模式 -> 按下新组合键 -> 冲突检测 -> 保存
     即时保存：所有修改直接写入 settings.json，无保存按钮
 -->
 <UserControl x:Class="Toolbox.Views.SettingsView"
@@ -16,18 +16,15 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- 设置标签页 -->
         <TabControl Grid.Row="0" Background="{StaticResource CardBrush}"
                     BorderBrush="{StaticResource BorderBrush}"
                     Foreground="{StaticResource TextPrimaryBrush}">
 
-            <!-- ========== 标签页1：外观 🎨 ========== -->
-            <TabItem Header="🎨 外观">
+            <TabItem Header="外观">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
                     <StackPanel>
                         <TextBlock Text="设置" FontSize="20" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,16"/>
 
-                        <!-- 顶部状态卡片 -->
                         <Border Background="{StaticResource SidebarBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,16">
                             <DockPanel>
                                 <StackPanel DockPanel.Dock="Left">
@@ -38,14 +35,13 @@
                             </DockPanel>
                         </Border>
 
-                        <!-- 主题风格 -->
                         <GroupBox Header="主题风格" Margin="0,0,0,12" Padding="12"
                                   Foreground="{StaticResource TextPrimaryBrush}"
                                   BorderBrush="{StaticResource BorderBrush}">
                             <StackPanel>
                                 <TextBlock Text="选择整个工具箱使用的界面风格，修改后立即生效" Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,0,0,8"/>
-                                <UniformGrid Columns="2" HorizontalAlignment="Left">
-                                    <Button Content="经典风格"
+                                <UniformGrid Columns="4" HorizontalAlignment="Left">
+                                    <Button Content="经典"
                                             Command="{Binding SetClassicThemeCommand}"
                                             Padding="16,9" Width="150" Margin="0,0,8,0"
                                             BorderThickness="1" Cursor="Hand">
@@ -64,8 +60,46 @@
                                             </Style>
                                         </Button.Style>
                                     </Button>
-                                    <Button Content="AI Agent 仪表盘"
-                                            Command="{Binding SetDashboardThemeCommand}"
+                                    <Button Content="曜石控制台"
+                                            Command="{Binding SetObsidianThemeCommand}"
+                                            Padding="16,9" Width="150" Margin="0,0,8,0"
+                                            BorderThickness="1" Cursor="Hand">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Background" Value="{StaticResource InputBackgroundBrush}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsObsidianThemeSelected}" Value="True">
+                                                        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <Button Content="对比专业版"
+                                            Command="{Binding SetContrastProThemeCommand}"
+                                            Padding="16,9" Width="150" Margin="0,0,8,0"
+                                            BorderThickness="1" Cursor="Hand">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Background" Value="{StaticResource InputBackgroundBrush}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsContrastProThemeSelected}" Value="True">
+                                                        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <Button Content="纸感工具箱"
+                                            Command="{Binding SetPaperUtilityThemeCommand}"
                                             Padding="16,9" Width="150"
                                             BorderThickness="1" Cursor="Hand">
                                         <Button.Style>
@@ -74,7 +108,7 @@
                                                 <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
                                                 <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsDashboardThemeSelected}" Value="True">
+                                                    <DataTrigger Binding="{Binding IsPaperUtilityThemeSelected}" Value="True">
                                                         <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
                                                         <Setter Property="Foreground" Value="White"/>
                                                         <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
@@ -87,7 +121,6 @@
                             </StackPanel>
                         </GroupBox>
 
-                        <!-- 语言切换 -->
                         <GroupBox Header="语言" Margin="0,0,0,12" Padding="12"
                                   Foreground="{StaticResource TextPrimaryBrush}"
                                   BorderBrush="{StaticResource BorderBrush}">
@@ -102,7 +135,6 @@
                             </StackPanel>
                         </GroupBox>
 
-                        <!-- 主界面外观 -->
                         <GroupBox Header="主界面外观" Margin="0,0,0,12" Padding="12"
                                   Foreground="{StaticResource TextPrimaryBrush}"
                                   BorderBrush="{StaticResource BorderBrush}">
@@ -150,7 +182,6 @@
                             </Grid>
                         </GroupBox>
 
-                        <!-- 悬浮面板外观 -->
                         <GroupBox Header="悬浮面板外观" Margin="0,0,0,12" Padding="12"
                                   Foreground="{StaticResource TextPrimaryBrush}"
                                   BorderBrush="{StaticResource BorderBrush}">
@@ -192,15 +223,13 @@
                 </ScrollViewer>
             </TabItem>
 
-            <!-- ========== 标签页2：快捷键 ⌨️ ========== -->
-            <TabItem Header="⌨️ 快捷键">
+            <TabItem Header="快捷键">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <StackPanel>
                         <TextBlock Text="点击快捷键区域进入录制模式，按下新组合键保存"
                                    Foreground="{StaticResource TextMutedBrush}" FontSize="12"
                                    Margin="0,0,0,12" TextWrapping="Wrap"/>
 
-                        <!-- 快捷键冲突提示 -->
                         <Border Background="{StaticResource DangerBrush}" CornerRadius="4" Padding="8,4"
                                 Margin="0,0,0,8"
                                 Visibility="{Binding IsRecordingShortcut, Converter={StaticResource BoolToVisibilityConverter}}">
@@ -208,7 +237,6 @@
                                        Foreground="White" FontSize="12" FontWeight="SemiBold"/>
                         </Border>
 
-                        <!-- 截屏快捷键 -->
                         <GroupBox Header="截屏快捷键" Margin="0,0,0,8" Padding="8"
                                   Foreground="{StaticResource TextPrimaryBrush}"
                                   BorderBrush="{StaticResource BorderBrush}">
@@ -226,17 +254,10 @@
                                 <Button Grid.Column="1" Content="录制" Padding="10,6" Margin="8,0,0,0"
                                         Background="{StaticResource AccentBrush}" Foreground="White"
                                         BorderThickness="0" Cursor="Hand"
-                                        Click="OnRecordScreenshotShortcut">
-                                    <Button.Resources>
-                                        <Style TargetType="Border">
-                                            <Setter Property="CornerRadius" Value="4"/>
-                                        </Style>
-                                    </Button.Resources>
-                                </Button>
+                                        Click="OnRecordScreenshotShortcut"/>
                             </Grid>
                         </GroupBox>
 
-                        <!-- 取色器快捷键 -->
                         <GroupBox Header="取色器快捷键" Margin="0,0,0,8" Padding="8"
                                   Foreground="{StaticResource TextPrimaryBrush}"
                                   BorderBrush="{StaticResource BorderBrush}">
@@ -254,17 +275,10 @@
                                 <Button Grid.Column="1" Content="录制" Padding="10,6" Margin="8,0,0,0"
                                         Background="{StaticResource AccentBrush}" Foreground="White"
                                         BorderThickness="0" Cursor="Hand"
-                                        Click="OnRecordColorPickerShortcut">
-                                    <Button.Resources>
-                                        <Style TargetType="Border">
-                                            <Setter Property="CornerRadius" Value="4"/>
-                                        </Style>
-                                    </Button.Resources>
-                                </Button>
+                                        Click="OnRecordColorPickerShortcut"/>
                             </Grid>
                         </GroupBox>
 
-                        <!-- 窗口置顶快捷键 -->
                         <GroupBox Header="窗口置顶快捷键" Padding="8"
                                   Foreground="{StaticResource TextPrimaryBrush}"
                                   BorderBrush="{StaticResource BorderBrush}">
@@ -282,28 +296,15 @@
                                 <Button Grid.Column="1" Content="录制" Padding="10,6" Margin="8,0,0,0"
                                         Background="{StaticResource AccentBrush}" Foreground="White"
                                         BorderThickness="0" Cursor="Hand"
-                                        Click="OnRecordAlwaysOnTopShortcut">
-                                    <Button.Resources>
-                                        <Style TargetType="Border">
-                                            <Setter Property="CornerRadius" Value="4"/>
-                                        </Style>
-                                    </Button.Resources>
-                                </Button>
+                                        Click="OnRecordAlwaysOnTopShortcut"/>
                             </Grid>
                         </GroupBox>
 
-                        <!-- 录制中取消按钮 -->
                         <Button Content="取消录制" Command="{Binding CancelRecordingCommand}"
                                 Visibility="{Binding IsRecordingShortcut, Converter={StaticResource BoolToVisibilityConverter}}"
                                 Margin="0,8,0,0" Padding="12,6" HorizontalAlignment="Left"
                                 Background="{StaticResource DangerBrush}" Foreground="White"
-                                BorderThickness="0" Cursor="Hand">
-                            <Button.Resources>
-                                <Style TargetType="Border">
-                                    <Setter Property="CornerRadius" Value="4"/>
-                                </Style>
-                            </Button.Resources>
-                        </Button>
+                                BorderThickness="0" Cursor="Hand"/>
 
                         <TextBlock Text="{Binding StatusMessage}"
                                    Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"
@@ -312,11 +313,9 @@
                 </ScrollViewer>
             </TabItem>
 
-            <!-- ========== 标签页3：通知 🔔 ========== -->
-            <TabItem Header="🔔 通知">
+            <TabItem Header="通知">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <StackPanel>
-                        <!-- 总开关 -->
                         <GroupBox Header="总开关" Margin="0,0,0,12" Padding="8"
                                   Foreground="{StaticResource TextPrimaryBrush}"
                                   BorderBrush="{StaticResource BorderBrush}">
@@ -325,7 +324,6 @@
                                       Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
                         </GroupBox>
 
-                        <!-- 默认提示音 -->
                         <GroupBox Header="默认提示音" Margin="0,0,0,12" Padding="8"
                                   Foreground="{StaticResource TextPrimaryBrush}"
                                   BorderBrush="{StaticResource BorderBrush}">
@@ -347,7 +345,6 @@
                             </StackPanel>
                         </GroupBox>
 
-                        <!-- 通知模式 -->
                         <GroupBox Header="通知模式" Margin="0,0,0,12" Padding="8"
                                   Foreground="{StaticResource TextPrimaryBrush}"
                                   BorderBrush="{StaticResource BorderBrush}">
@@ -396,14 +393,12 @@
                 </ScrollViewer>
             </TabItem>
 
-            <!-- ========== 标签页4：关于 ℹ️ ========== -->
-            <TabItem Header="🔧 调试">
+            <TabItem Header="调试">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <StackPanel>
                         <TextBlock Text="调试模式" FontSize="20" FontWeight="Bold"
                                    Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,16"/>
 
-                        <!-- 调试模式说明 -->
                         <Border Background="{StaticResource SidebarBrush}"
                                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                                 CornerRadius="8" Padding="12" Margin="0,0,0,16">
@@ -432,11 +427,9 @@
                 </ScrollViewer>
             </TabItem>
 
-            <!-- ========== 标签页4：关于 ℹ️ ========== -->
-            <TabItem Header="ℹ️ 关于">
+            <TabItem Header="关于">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <StackPanel>
-                        <!-- 版本信息 -->
                         <GroupBox Header="版本信息" Margin="0,0,0,12" Padding="8"
                                   Foreground="{StaticResource TextPrimaryBrush}"
                                   BorderBrush="{StaticResource BorderBrush}">
@@ -449,13 +442,7 @@
                                             IsEnabled="{Binding IsCheckingUpdate, Converter={StaticResource InverseBoolConverter}}"
                                             Padding="12,6"
                                             Background="{StaticResource AccentBrush}" Foreground="White"
-                                            BorderThickness="0" Cursor="Hand">
-                                        <Button.Resources>
-                                            <Style TargetType="Border">
-                                                <Setter Property="CornerRadius" Value="4"/>
-                                            </Style>
-                                        </Button.Resources>
-                                    </Button>
+                                            BorderThickness="0" Cursor="Hand"/>
                                     <TextBlock Text="{Binding UpdateStatus}"
                                                Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"
                                                VerticalAlignment="Center" Margin="12,0,0,0"/>
@@ -463,7 +450,6 @@
                             </StackPanel>
                         </GroupBox>
 
-                        <!-- 操作 -->
                         <GroupBox Header="操作" Margin="0,0,0,12" Padding="8"
                                   Foreground="{StaticResource TextPrimaryBrush}"
                                   BorderBrush="{StaticResource BorderBrush}">
@@ -471,13 +457,7 @@
                                 <Button Content="恢复默认设置" Command="{Binding ResetToDefaultsCommand}"
                                         Padding="12,6" HorizontalAlignment="Left" Margin="0,0,0,8"
                                         Background="{StaticResource WarningBrush}" Foreground="White"
-                                        BorderThickness="0" Cursor="Hand">
-                                    <Button.Resources>
-                                        <Style TargetType="Border">
-                                            <Setter Property="CornerRadius" Value="4"/>
-                                        </Style>
-                                    </Button.Resources>
-                                </Button>
+                                        BorderThickness="0" Cursor="Hand"/>
                                 <Button Content="导出设置" Command="{Binding ExportSettingsCommand}"
                                         Padding="12,6" HorizontalAlignment="Left" Margin="0,0,0,8"
                                         Background="{StaticResource InputBackgroundBrush}"
@@ -500,7 +480,6 @@
             </TabItem>
         </TabControl>
 
-        <!-- 底部保存状态栏 -->
         <Border Grid.Row="1" Background="{StaticResource CardBrush}"
                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                 CornerRadius="{StaticResource DefaultCornerRadius}" Padding="8,4"

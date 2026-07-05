@@ -2,6 +2,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Toolbox.Services;
 
@@ -88,9 +89,39 @@ public class ConfigService : IConfigService
     {
         if (!File.Exists(filePath)) return "";
 
-        using var stream = File.OpenRead(filePath);
-        var hash = SHA256.HashData(stream);
+        var bytes = GetHashBytes(filePath);
+        var hash = SHA256.HashData(bytes);
         return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+    }
+
+    private static byte[] GetHashBytes(string filePath)
+    {
+        var bytes = File.ReadAllBytes(filePath);
+        if (!filePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            return bytes;
+
+        try
+        {
+            var offset = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF
+                ? 3
+                : 0;
+            var json = Encoding.UTF8.GetString(bytes, offset, bytes.Length - offset);
+            var node = JsonNode.Parse(json);
+            if (node is not JsonObject obj || !obj.ContainsKey(nameof(Models.AppSettings.ConfigHash)))
+                return bytes;
+
+            obj[nameof(Models.AppSettings.ConfigHash)] = "";
+            var normalized = obj.ToJsonString(new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            });
+            return Encoding.UTF8.GetBytes(normalized);
+        }
+        catch
+        {
+            return bytes;
+        }
     }
 
     /// <summary>

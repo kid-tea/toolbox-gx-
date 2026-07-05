@@ -19,6 +19,7 @@ public partial class SettingsViewModel : ViewModelBase
     private readonly IThemeService _theme;
     private readonly ILogService _log;
     private AppSettings _settings = new();
+    private bool _isLoadingSettings;
 
     // ==================== 外观设置 ====================
 
@@ -26,9 +27,17 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private string _currentTheme = "Light";
 
-    public bool IsClassicThemeSelected => !string.Equals(CurrentTheme, nameof(ThemeType.Dashboard), StringComparison.OrdinalIgnoreCase);
+    public bool IsClassicThemeSelected =>
+        string.Equals(CurrentTheme, nameof(ThemeType.Light), StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(CurrentTheme, nameof(ThemeType.Dark), StringComparison.OrdinalIgnoreCase);
 
-    public bool IsDashboardThemeSelected => string.Equals(CurrentTheme, nameof(ThemeType.Dashboard), StringComparison.OrdinalIgnoreCase);
+    public bool IsObsidianThemeSelected =>
+        string.Equals(CurrentTheme, nameof(ThemeType.Obsidian), StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(CurrentTheme, nameof(ThemeType.Dashboard), StringComparison.OrdinalIgnoreCase);
+
+    public bool IsContrastProThemeSelected => string.Equals(CurrentTheme, nameof(ThemeType.ContrastPro), StringComparison.OrdinalIgnoreCase);
+
+    public bool IsPaperUtilityThemeSelected => string.Equals(CurrentTheme, nameof(ThemeType.PaperUtility), StringComparison.OrdinalIgnoreCase);
 
     /// <summary>当前语言（zh-CN/en-US）</summary>
     [ObservableProperty]
@@ -173,6 +182,7 @@ public partial class SettingsViewModel : ViewModelBase
     /// </summary>
     private void LoadSettings()
     {
+        _isLoadingSettings = true;
         _settings = _config.LoadConfig<AppSettings>(_config.SettingsFilePath) ?? new AppSettings();
 
         // 外观
@@ -205,6 +215,7 @@ public partial class SettingsViewModel : ViewModelBase
 
         // 调试模式
         DebugMode = _settings.DebugMode;
+        _isLoadingSettings = false;
     }
 
     /// <summary>
@@ -212,6 +223,8 @@ public partial class SettingsViewModel : ViewModelBase
     /// </summary>
     private void SaveSettings()
     {
+        if (_isLoadingSettings) return;
+
         try
         {
             _settings.Theme = CurrentTheme;
@@ -276,7 +289,25 @@ public partial class SettingsViewModel : ViewModelBase
     [RelayCommand]
     private void SetDashboardTheme()
     {
-        ApplyTheme(ThemeType.Dashboard);
+        ApplyTheme(ThemeType.Obsidian);
+    }
+
+    [RelayCommand]
+    private void SetObsidianTheme()
+    {
+        ApplyTheme(ThemeType.Obsidian);
+    }
+
+    [RelayCommand]
+    private void SetContrastProTheme()
+    {
+        ApplyTheme(ThemeType.ContrastPro);
+    }
+
+    [RelayCommand]
+    private void SetPaperUtilityTheme()
+    {
+        ApplyTheme(ThemeType.PaperUtility);
     }
 
     private void ApplyTheme(ThemeType theme)
@@ -289,7 +320,9 @@ public partial class SettingsViewModel : ViewModelBase
     partial void OnCurrentThemeChanged(string value)
     {
         OnPropertyChanged(nameof(IsClassicThemeSelected));
-        OnPropertyChanged(nameof(IsDashboardThemeSelected));
+        OnPropertyChanged(nameof(IsObsidianThemeSelected));
+        OnPropertyChanged(nameof(IsContrastProThemeSelected));
+        OnPropertyChanged(nameof(IsPaperUtilityThemeSelected));
     }
 
     /// <summary>

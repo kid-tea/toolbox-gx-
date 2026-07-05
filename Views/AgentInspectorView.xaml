@@ -5,18 +5,15 @@
              xmlns:converters="clr-namespace:Toolbox.Converters"
              xmlns:oxy="http://oxyplot.org/wpf"
              xmlns:primitives="clr-namespace:System.Windows.Controls.Primitives;assembly=PresentationFramework"
-             Background="#11131A">
+             Background="{DynamicResource ContentBrush}">
 
     <UserControl.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/Toolbox;component/Resources/AgentCyberTheme.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
             <converters:BoolInverseConverter x:Key="BoolInverseConverter"/>
 
             <Style TargetType="{x:Type primitives:DatePickerTextBox}">
-                <Setter Property="Background" Value="#202532"/>
+                <Setter Property="Background" Value="{StaticResource CyberInputBrush}"/>
                 <Setter Property="Foreground" Value="{StaticResource CyberTextBrush}"/>
                 <Setter Property="BorderBrush" Value="{StaticResource CyberLineBrush}"/>
                 <Setter Property="BorderThickness" Value="1"/>
@@ -26,7 +23,7 @@
             </Style>
 
             <Style x:Key="CyberDatePickerStyle" TargetType="{x:Type DatePicker}">
-                <Setter Property="Background" Value="#202532"/>
+                <Setter Property="Background" Value="{StaticResource CyberInputBrush}"/>
                 <Setter Property="Foreground" Value="{StaticResource CyberTextBrush}"/>
                 <Setter Property="BorderBrush" Value="{StaticResource CyberLineBrush}"/>
                 <Setter Property="BorderThickness" Value="1"/>
@@ -37,29 +34,29 @@
             <Style x:Key="StatusBadgeStyle" TargetType="Border">
                 <Setter Property="CornerRadius" Value="3"/>
                 <Setter Property="Padding" Value="7,2"/>
-                <Setter Property="Background" Value="#242A3A"/>
+                <Setter Property="Background" Value="{StaticResource CyberHoverBrush}"/>
                 <Setter Property="BorderBrush" Value="{StaticResource CyberCyanBrush}"/>
                 <Setter Property="BorderThickness" Value="1"/>
                 <Style.Triggers>
                     <DataTrigger Binding="{Binding Level}" Value="{x:Static models:AgentFindingLevel.Attention}">
-                        <Setter Property="Background" Value="#332A1A"/>
+                        <Setter Property="Background" Value="{StaticResource CyberAttentionBrush}"/>
                         <Setter Property="BorderBrush" Value="{StaticResource CyberOrangeBrush}"/>
                     </DataTrigger>
                     <DataTrigger Binding="{Binding Level}" Value="{x:Static models:AgentFindingLevel.Risk}">
-                        <Setter Property="Background" Value="#36212B"/>
+                        <Setter Property="Background" Value="{StaticResource CyberRiskPanelBrush}"/>
                         <Setter Property="BorderBrush" Value="{StaticResource CyberMagentaBrush}"/>
                         <Setter Property="Effect" Value="{StaticResource CyberRiskGlow}"/>
                     </DataTrigger>
                     <DataTrigger Binding="{Binding Level}" Value="{x:Static models:AgentFindingLevel.Unsupported}">
-                        <Setter Property="Background" Value="#28233D"/>
+                        <Setter Property="Background" Value="{StaticResource CyberUnsupportedBrush}"/>
                         <Setter Property="BorderBrush" Value="{StaticResource CyberPurpleBrush}"/>
                     </DataTrigger>
                 </Style.Triggers>
             </Style>
 
             <Style x:Key="TokenMetricCardButtonStyle" TargetType="Button">
-                <Setter Property="Background" Value="#1A1F2B"/>
-                <Setter Property="BorderBrush" Value="#2E3850"/>
+                <Setter Property="Background" Value="{StaticResource CyberMetricCardBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource CyberLineBrush}"/>
                 <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="Foreground" Value="{StaticResource CyberTextBrush}"/>
                 <Setter Property="Cursor" Value="Hand"/>
@@ -79,11 +76,11 @@
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="CardBorder" Property="Background" Value="#202638"/>
-                                    <Setter TargetName="CardBorder" Property="BorderBrush" Value="#5B72FF"/>
+                                    <Setter TargetName="CardBorder" Property="Background" Value="{StaticResource CyberMetricCardHoverBrush}"/>
+                                    <Setter TargetName="CardBorder" Property="BorderBrush" Value="{StaticResource CyberFocusBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter TargetName="CardBorder" Property="Background" Value="#242B3A"/>
+                                    <Setter TargetName="CardBorder" Property="Background" Value="{StaticResource CyberMetricCardPressedBrush}"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -93,7 +90,7 @@
 
             <ControlTemplate x:Key="CyberPlotTrackerTemplate">
                 <oxy:TrackerControl Position="{Binding Position}" LineExtents="{Binding LineExtents}">
-                    <Border Background="#111827"
+                    <Border Background="{StaticResource CyberTrackerBrush}"
                             BorderBrush="{StaticResource CyberCyanBrush}"
                             BorderThickness="1"
                             CornerRadius="4"
@@ -116,7 +113,7 @@
                 <VisualBrush.Visual>
                     <Grid>
                         <Rectangle Fill="{StaticResource CyberBackgroundBrush}"/>
-                        <Rectangle Fill="{StaticResource CyberGridBrush}" Opacity="0.7"/>
+                        <Rectangle Fill="{StaticResource CyberGridBrush}" Opacity="0.18"/>
                     </Grid>
                 </VisualBrush.Visual>
             </VisualBrush>
@@ -231,13 +228,13 @@
             <TabControl Grid.Row="3"
                         Style="{StaticResource CyberTabControlStyle}"
                         ItemContainerStyle="{StaticResource CyberTabItemStyle}">
-                <TabItem Header="环境概览">
+                <TabItem Header="&#x73AF;&#x5883;&#x6982;&#x89C8;">
                     <Border Style="{StaticResource CyberPanelStyle}" Margin="0,8,0,0">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <ItemsControl ItemsSource="{Binding Environments}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border BorderBrush="#2C3344" BorderThickness="0,0,0,1" Padding="0,10">
+                                        <Border BorderBrush="{StaticResource CyberLineBrush}" BorderThickness="0,0,0,1" Padding="0,10">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="180"/>
@@ -261,12 +258,12 @@
                     </Border>
                 </TabItem>
 
-                <TabItem Header="Skills / 规则">
+                <TabItem Header="Skills / &#x89C4;&#x5219;">
                     <Grid Margin="0,8,0,0">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.3*"/>
+                            <ColumnDefinition Width="1.3*" MinWidth="320"/>
                             <ColumnDefinition Width="12"/>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*" MinWidth="260"/>
                         </Grid.ColumnDefinitions>
 
                         <Border Grid.Column="0" Style="{StaticResource CyberPanelStyle}">
@@ -276,7 +273,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="SKILL TREE" Style="{StaticResource CyberHeaderTextStyle}" FontSize="18"/>
+                                    <TextBlock Text="Skill &#x5206;&#x7EC4;" Style="{StaticResource CyberHeaderTextStyle}" FontSize="18"/>
                                     <ComboBox Grid.Column="1"
                                               ItemsSource="{Binding SkillDescriptionLanguages}"
                                               SelectedItem="{Binding SelectedSkillDescriptionLanguage, Mode=TwoWay}"
@@ -288,22 +285,39 @@
                                           Background="Transparent"
                                           BorderThickness="0"
                                           Foreground="{StaticResource CyberTextBrush}"
-                                          FontFamily="Consolas">
+                                          FontFamily="Microsoft YaHei UI, Segoe UI, Consolas"
+                                          ItemContainerStyle="{StaticResource CyberTreeViewItemStyle}">
                                     <TreeView.Resources>
+                                        <Style TargetType="{x:Type TreeViewItem}" BasedOn="{StaticResource CyberTreeViewItemStyle}"/>
+
                                         <HierarchicalDataTemplate DataType="{x:Type models:AgentSkillAgentGroup}" ItemsSource="{Binding PluginGroups}">
-                                            <Border Background="#242A3A" BorderBrush="#343B4D" BorderThickness="1" CornerRadius="6" Padding="8,5" Margin="0,4,0,4">
-                                                <TextBlock Text="{Binding DisplayName}" Foreground="{StaticResource CyberCyanBrush}" FontSize="16" FontWeight="Bold"/>
+                                            <Border Background="Transparent" BorderBrush="{StaticResource CyberLineBrush}" BorderThickness="0,0,0,1" Padding="8,7" Margin="0,2,0,2">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="16"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Ellipse Width="8" Height="8" Fill="{StaticResource CyberCyanBrush}" Opacity="0.85" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding DisplayName}" Foreground="{StaticResource CyberCyanBrush}" FontSize="17" FontWeight="Bold" Margin="6,0,0,0"/>
+                                                </Grid>
                                             </Border>
                                         </HierarchicalDataTemplate>
 
                                         <HierarchicalDataTemplate DataType="{x:Type models:AgentSkillPluginGroup}" ItemsSource="{Binding Skills}">
-                                            <Border Background="#202E2D" BorderBrush="#2F4540" BorderThickness="1" CornerRadius="6" Padding="8,4" Margin="0,3,0,3">
-                                                <TextBlock Text="{Binding DisplayName}" Foreground="{StaticResource CyberGreenBrush}" FontSize="15" FontWeight="SemiBold"/>
+                                            <Border Background="Transparent" BorderBrush="{StaticResource CyberLineBrush}" BorderThickness="0,0,0,1" Padding="8,6" Margin="0,1,0,1">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="16"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Ellipse Width="7" Height="7" Fill="{StaticResource CyberGreenBrush}" Opacity="0.78" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding DisplayName}" Foreground="{StaticResource CyberGreenBrush}" FontSize="16" FontWeight="SemiBold" Margin="6,0,0,0"/>
+                                                </Grid>
                                             </Border>
                                         </HierarchicalDataTemplate>
 
                                         <DataTemplate DataType="{x:Type models:AgentSkillItem}">
-                                            <Border BorderBrush="#2C3344" BorderThickness="0,0,0,1" Padding="8,8" Margin="0,0,0,6">
+                                            <Border BorderBrush="{StaticResource CyberLineBrush}" BorderThickness="0,0,0,1" Padding="8,8" Margin="0,0,0,6">
                                                 <Grid>
                                                     <Grid.RowDefinitions>
                                                         <RowDefinition Height="Auto"/>
@@ -356,14 +370,9 @@
                                                                  MinHeight="54"
                                                                  TextWrapping="Wrap"
                                                                  AcceptsReturn="True"
-                                                                 Background="#202532"
-                                                                 Foreground="{StaticResource CyberTextBrush}"
-                                                                 BorderBrush="{StaticResource CyberLineBrush}"
-                                                                 FontFamily="Consolas"
-                                                                 FontSize="14"
-                                                                 Padding="8,5"/>
+                                                                 Style="{StaticResource CyberTextBoxStyle}"/>
                                                         <Button Grid.Column="1"
-                                                                Content="保存说明"
+                                                                Content="&#x4FDD;&#x5B58;&#x8BF4;&#x660E;"
                                                                 Command="{Binding DataContext.SaveSkillDescriptionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                 CommandParameter="{Binding}"
                                                                 Style="{StaticResource CyberGhostButtonStyle}"
@@ -380,11 +389,11 @@
 
                         <Border Grid.Column="2" Style="{StaticResource CyberPanelStyle}">
                             <DockPanel>
-                                <TextBlock DockPanel.Dock="Top" Text="PROJECT RULES" Style="{StaticResource CyberHeaderTextStyle}" Margin="0,0,0,8"/>
+                                <TextBlock DockPanel.Dock="Top" Text="&#x9879;&#x76EE;&#x89C4;&#x5219;" Style="{StaticResource CyberHeaderTextStyle}" FontSize="18" Margin="0,0,0,8"/>
                                 <ItemsControl ItemsSource="{Binding ProjectRules}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border BorderBrush="#2C3344" BorderThickness="0,0,0,1" Padding="0,8">
+                                            <Border BorderBrush="{StaticResource CyberLineBrush}" BorderThickness="0,0,0,1" Padding="0,8">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="110"/>
@@ -402,7 +411,7 @@
                     </Grid>
                 </TabItem>
 
-                <TabItem Header="Token 消耗">
+                <TabItem Header="Token &#x6D88;&#x8017;">
                     <Grid Margin="0,8,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -417,8 +426,8 @@
                                     CommandParameter="TODAY"
                                     Margin="0,0,8,0">
                                 <StackPanel>
-                                    <TextBlock Text="今日" Style="{StaticResource CyberMutedTextStyle}"/>
-                                    <TextBlock Text="{Binding TodayTokensText}" ToolTip="{Binding TokenSummary.TodayTokens, StringFormat={}{0:N0} 原始 Token}" FontSize="22" Foreground="{StaticResource CyberCyanBrush}" Style="{StaticResource CyberHeaderTextStyle}"/>
+                                    <TextBlock Text="&#x4ECA;&#x65E5;" Style="{StaticResource CyberMutedTextStyle}"/>
+                                    <TextBlock Text="{Binding TodayTokensText}" ToolTip="{Binding TokenSummary.TodayTokens, StringFormat={}{0:N0} &#x539F;&#x59CB; Token}" FontSize="22" Foreground="{StaticResource CyberCyanBrush}" Style="{StaticResource CyberHeaderTextStyle}"/>
                                 </StackPanel>
                             </Button>
                             <Button Style="{StaticResource TokenMetricCardButtonStyle}"
@@ -426,8 +435,8 @@
                                     CommandParameter="WEEK"
                                     Margin="0,0,8,0">
                                 <StackPanel>
-                                    <TextBlock Text="本周" Style="{StaticResource CyberMutedTextStyle}"/>
-                                    <TextBlock Text="{Binding WeekTokensText}" ToolTip="{Binding TokenSummary.ThisWeekTokens, StringFormat={}{0:N0} 原始 Token}" FontSize="22" Foreground="{StaticResource CyberBlueBrush}" Style="{StaticResource CyberHeaderTextStyle}"/>
+                                    <TextBlock Text="&#x672C;&#x5468;" Style="{StaticResource CyberMutedTextStyle}"/>
+                                    <TextBlock Text="{Binding WeekTokensText}" ToolTip="{Binding TokenSummary.ThisWeekTokens, StringFormat={}{0:N0} &#x539F;&#x59CB; Token}" FontSize="22" Foreground="{StaticResource CyberBlueBrush}" Style="{StaticResource CyberHeaderTextStyle}"/>
                                 </StackPanel>
                             </Button>
                             <Button Style="{StaticResource TokenMetricCardButtonStyle}"
@@ -435,13 +444,13 @@
                                     CommandParameter="MONTH"
                                     Margin="0,0,8,0">
                                 <StackPanel>
-                                    <TextBlock Text="本月" Style="{StaticResource CyberMutedTextStyle}"/>
-                                    <TextBlock Text="{Binding MonthTokensText}" ToolTip="{Binding TokenSummary.ThisMonthTokens, StringFormat={}{0:N0} 原始 Token}" FontSize="22" Foreground="{StaticResource CyberGreenBrush}" Style="{StaticResource CyberHeaderTextStyle}"/>
+                                    <TextBlock Text="&#x672C;&#x6708;" Style="{StaticResource CyberMutedTextStyle}"/>
+                                    <TextBlock Text="{Binding MonthTokensText}" ToolTip="{Binding TokenSummary.ThisMonthTokens, StringFormat={}{0:N0} &#x539F;&#x59CB; Token}" FontSize="22" Foreground="{StaticResource CyberGreenBrush}" Style="{StaticResource CyberHeaderTextStyle}"/>
                                 </StackPanel>
                             </Button>
                             <Border Style="{StaticResource CyberPanelStyle}">
                                 <StackPanel>
-                                    <TextBlock Text="估算费用" Style="{StaticResource CyberMutedTextStyle}"/>
+                                    <TextBlock Text="&#x4F30;&#x7B97;&#x8D39;&#x7528;" Style="{StaticResource CyberMutedTextStyle}"/>
                                     <TextBlock Text="{Binding EstimatedCostText}" FontSize="20" Foreground="{StaticResource CyberOrangeBrush}" Style="{StaticResource CyberHeaderTextStyle}"/>
                                 </StackPanel>
                             </Border>
@@ -455,34 +464,34 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="{Binding SelectedTokenPeriodTitle}" Style="{StaticResource CyberHeaderTextStyle}" FontSize="16"/>
-                                    <TextBlock Grid.Column="1" Text="缓存命中率 = cached input / input" Style="{StaticResource CyberMutedTextStyle}" FontSize="11"/>
+                                    <TextBlock Grid.Column="1" Text="&#x7F13;&#x5B58;&#x547D;&#x4E2D;&#x7387; = cached input / input" Style="{StaticResource CyberMutedTextStyle}" FontSize="11"/>
                                 </Grid>
                                 <Grid DockPanel.Dock="Top" Margin="0,0,0,4">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="120"/>
+                                        <ColumnDefinition Width="96"/>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="130"/>
-                                        <ColumnDefinition Width="90"/>
-                                        <ColumnDefinition Width="130"/>
+                                        <ColumnDefinition Width="112"/>
+                                        <ColumnDefinition Width="84"/>
+                                        <ColumnDefinition Width="112"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="软件" Style="{StaticResource CyberMutedTextStyle}"/>
-                                    <TextBlock Grid.Column="1" Text="模型" Style="{StaticResource CyberMutedTextStyle}"/>
-                                    <TextBlock Grid.Column="2" Text="消耗" Style="{StaticResource CyberMutedTextStyle}" HorizontalAlignment="Right"/>
-                                    <TextBlock Grid.Column="3" Text="调用次数" Style="{StaticResource CyberMutedTextStyle}" HorizontalAlignment="Right"/>
-                                    <TextBlock Grid.Column="4" Text="缓存命中率" Style="{StaticResource CyberMutedTextStyle}" HorizontalAlignment="Right"/>
+                                    <TextBlock Text="&#x8F6F;&#x4EF6;" Style="{StaticResource CyberMutedTextStyle}"/>
+                                    <TextBlock Grid.Column="1" Text="&#x6A21;&#x578B;" Style="{StaticResource CyberMutedTextStyle}"/>
+                                    <TextBlock Grid.Column="2" Text="&#x6D88;&#x8017;" Style="{StaticResource CyberMutedTextStyle}" HorizontalAlignment="Right"/>
+                                    <TextBlock Grid.Column="3" Text="&#x8C03;&#x7528;&#x6B21;&#x6570;" Style="{StaticResource CyberMutedTextStyle}" HorizontalAlignment="Right"/>
+                                    <TextBlock Grid.Column="4" Text="&#x7F13;&#x5B58;&#x547D;&#x4E2D;&#x7387;" Style="{StaticResource CyberMutedTextStyle}" HorizontalAlignment="Right"/>
                                 </Grid>
                                 <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="155">
                                     <ItemsControl ItemsSource="{Binding TokenModelSummaries}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Border BorderBrush="#2C3344" BorderThickness="0,0,0,1" Padding="0,8">
+                                                <Border BorderBrush="{StaticResource CyberLineBrush}" BorderThickness="0,0,0,1" Padding="0,8">
                                                     <Grid>
                                                         <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="120"/>
+                                                            <ColumnDefinition Width="96"/>
                                                             <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="130"/>
-                                                            <ColumnDefinition Width="90"/>
-                                                            <ColumnDefinition Width="130"/>
+                                                            <ColumnDefinition Width="112"/>
+                                                            <ColumnDefinition Width="84"/>
+                                                            <ColumnDefinition Width="112"/>
                                                         </Grid.ColumnDefinitions>
                                                         <TextBlock Text="{Binding Agent}" Foreground="{StaticResource CyberTextBrush}" FontFamily="Consolas"/>
                                                         <TextBlock Grid.Column="1" Text="{Binding Model}" Style="{StaticResource CyberMutedTextStyle}" TextTrimming="CharacterEllipsis"/>
@@ -511,22 +520,16 @@
                                     </Grid.ColumnDefinitions>
 
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
-                                        <TextBlock Text="DATE" Style="{StaticResource CyberMutedTextStyle}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#x65E5;&#x671F;" Style="{StaticResource CyberMutedTextStyle}" VerticalAlignment="Center"/>
                                         <TextBlock Text="{Binding TokenScopeNote}" Style="{StaticResource CyberMutedTextStyle}" FontSize="11" Margin="12,0,0,0" VerticalAlignment="Center"/>
                                     </StackPanel>
                                     <TextBox Grid.Column="1"
                                              Text="{Binding SelectedTokenDateText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                              Width="150"
                                              VerticalAlignment="Center"
-                                             Background="#202532"
-                                             Foreground="{StaticResource CyberTextBrush}"
-                                             BorderBrush="{StaticResource CyberLineBrush}"
-                                             BorderThickness="1"
-                                             FontFamily="Consolas"
-                                             FontSize="13"
-                                             Padding="8,5"/>
+                                             Style="{StaticResource CyberTextBoxStyle}"/>
                                     <Button Grid.Column="2"
-                                            Content="今天"
+                                            Content="&#x4ECA;&#x5929;"
                                             Command="{Binding ShowTodayTokensCommand}"
                                             Style="{StaticResource CyberGhostButtonStyle}"
                                             HorizontalAlignment="Left"
@@ -537,11 +540,11 @@
                                         <TextBlock Text="{Binding SelectedDayTotalTokensText}" Foreground="{StaticResource CyberCyanBrush}" FontSize="18" FontFamily="Consolas" FontWeight="Bold"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="4" Margin="20,0,0,0">
-                                        <TextBlock Text="调用次数" Style="{StaticResource CyberMutedTextStyle}"/>
+                                        <TextBlock Text="&#x8C03;&#x7528;&#x6B21;&#x6570;" Style="{StaticResource CyberMutedTextStyle}"/>
                                         <TextBlock Text="{Binding SelectedDayCallCountText}" Foreground="{StaticResource CyberMutedBrush}" FontSize="15" FontFamily="Microsoft YaHei UI, Consolas" FontWeight="SemiBold"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="5" Margin="20,0,0,0">
-                                        <TextBlock Text="CACHE HIT" Style="{StaticResource CyberMutedTextStyle}"/>
+                                        <TextBlock Text="&#x7F13;&#x5B58;&#x547D;&#x4E2D;&#x7387;" Style="{StaticResource CyberMutedTextStyle}"/>
                                         <TextBlock Text="{Binding SelectedDayCacheHitRateText}" Foreground="{StaticResource CyberOrangeBrush}" FontSize="18" FontFamily="Consolas" FontWeight="Bold"/>
                                     </StackPanel>
                                 </Grid>
@@ -552,20 +555,20 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="{Binding SelectedDayHistoryStatusText}" Style="{StaticResource CyberMutedTextStyle}" FontSize="12"/>
-                                    <TextBlock Grid.Column="1" Text="单日总消耗 / 最近 30 天历史" Style="{StaticResource CyberMutedTextStyle}" FontSize="12"/>
+                                    <TextBlock Grid.Column="1" Text="&#x5355;&#x65E5;&#x603B;&#x6D88;&#x8017; / &#x6700;&#x8FD1; 30 &#x5929;&#x5386;&#x53F2;" Style="{StaticResource CyberMutedTextStyle}" FontSize="12"/>
                                 </Grid>
 
                                 <ItemsControl ItemsSource="{Binding SelectedDayTokenModelSummaries}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border BorderBrush="#2C3344" BorderThickness="0,0,0,1" Padding="0,6">
+                                            <Border BorderBrush="{StaticResource CyberLineBrush}" BorderThickness="0,0,0,1" Padding="0,6">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="120"/>
+                                                        <ColumnDefinition Width="96"/>
                                                         <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="120"/>
-                                                        <ColumnDefinition Width="90"/>
-                                                        <ColumnDefinition Width="120"/>
+                                                        <ColumnDefinition Width="112"/>
+                                                        <ColumnDefinition Width="84"/>
+                                                        <ColumnDefinition Width="112"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Text="{Binding Agent}" Foreground="{StaticResource CyberTextBrush}" FontFamily="Consolas"/>
                                                     <TextBlock Grid.Column="1" Text="{Binding Model}" Style="{StaticResource CyberMutedTextStyle}" TextTrimming="CharacterEllipsis"/>
@@ -583,7 +586,7 @@
                         <TabControl Grid.Row="3"
                                     Style="{StaticResource CyberTabControlStyle}"
                                     ItemContainerStyle="{StaticResource CyberTabItemStyle}">
-                            <TabItem Header="消耗趋势">
+                            <TabItem Header="&#x6D88;&#x8017;&#x8D8B;&#x52BF;">
                                 <Grid Margin="0,8,0,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -605,7 +608,7 @@
                                 </Grid>
                             </TabItem>
 
-                            <TabItem Header="单次消耗明细">
+                            <TabItem Header="&#x5355;&#x6B21;&#x6D88;&#x8017;&#x660E;&#x7EC6;">
                                 <Border Style="{StaticResource CyberPanelStyle}" Margin="0,8,0,0" Padding="14">
                                     <Grid>
                                         <Grid.RowDefinitions>
@@ -614,27 +617,27 @@
                                         </Grid.RowDefinitions>
                                         <Grid Grid.Row="0" Margin="0,0,0,8">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="130"/>
-                                                <ColumnDefinition Width="170"/>
-                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="96"/>
                                                 <ColumnDefinition Width="150"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="120"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="AGENT" Style="{StaticResource CyberMutedTextStyle}"/>
-                                            <TextBlock Grid.Column="1" Text="TIME DESC" Style="{StaticResource CyberMutedTextStyle}"/>
-                                            <TextBlock Grid.Column="2" Text="MODEL" Style="{StaticResource CyberMutedTextStyle}"/>
-                                            <TextBlock Grid.Column="3" Text="RAW TOKENS" Style="{StaticResource CyberMutedTextStyle}" HorizontalAlignment="Right"/>
+                                            <TextBlock Text="&#x8F6F;&#x4EF6;" Style="{StaticResource CyberMutedTextStyle}"/>
+                                            <TextBlock Grid.Column="1" Text="&#x65F6;&#x95F4;" Style="{StaticResource CyberMutedTextStyle}"/>
+                                            <TextBlock Grid.Column="2" Text="&#x6A21;&#x578B;" Style="{StaticResource CyberMutedTextStyle}"/>
+                                            <TextBlock Grid.Column="3" Text="Token" Style="{StaticResource CyberMutedTextStyle}" HorizontalAlignment="Right"/>
                                         </Grid>
                                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                                             <ItemsControl ItemsSource="{Binding SelectedDateTokenRecords}">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <Border BorderBrush="#2C3344" BorderThickness="0,0,0,1" Padding="0,10">
+                                                        <Border BorderBrush="{StaticResource CyberLineBrush}" BorderThickness="0,0,0,1" Padding="0,10">
                                                             <Grid>
                                                                 <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="130"/>
-                                                                    <ColumnDefinition Width="170"/>
-                                                                    <ColumnDefinition Width="*"/>
+                                                                    <ColumnDefinition Width="96"/>
                                                                     <ColumnDefinition Width="150"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                    <ColumnDefinition Width="120"/>
                                                                 </Grid.ColumnDefinitions>
                                                                 <TextBlock Text="{Binding Agent}" Style="{StaticResource CyberMutedTextStyle}"/>
                                                                 <TextBlock Grid.Column="1" Text="{Binding Date, StringFormat={}{0:yyyy-MM-dd HH:mm}}" Foreground="{StaticResource CyberTextBrush}" FontFamily="Consolas"/>
@@ -653,7 +656,7 @@
                     </Grid>
                 </TabItem>
 
-                <TabItem Header="报告">
+                <TabItem Header="&#x62A5;&#x544A;">
                     <Border Style="{StaticResource CyberPanelStyle}" Margin="0,8,0,0">
                         <Grid>
                             <Grid.RowDefinitions>
@@ -661,8 +664,8 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-                                <Button Content="复制 Markdown" Command="{Binding CopyReportCommand}" Style="{StaticResource CyberButtonStyle}" Margin="0,0,8,0"/>
-                                <Button Content="保存报告" Command="{Binding SaveReportCommand}" Style="{StaticResource CyberGhostButtonStyle}"/>
+                                <Button Content="&#x590D;&#x5236; Markdown" Command="{Binding CopyReportCommand}" Style="{StaticResource CyberButtonStyle}" Margin="0,0,8,0"/>
+                                <Button Content="&#x4FDD;&#x5B58;&#x62A5;&#x544A;" Command="{Binding SaveReportCommand}" Style="{StaticResource CyberGhostButtonStyle}"/>
                             </StackPanel>
                             <TextBox Grid.Row="1"
                                      Text="{Binding ReportText}"
@@ -670,11 +673,8 @@
                                      AcceptsReturn="True"
                                      TextWrapping="Wrap"
                                      VerticalScrollBarVisibility="Auto"
-                                     Background="#202532"
-                                     Foreground="{StaticResource CyberTextBrush}"
-                                     BorderBrush="{StaticResource CyberLineBrush}"
-                                     FontFamily="Consolas"
-                                     FontSize="12"/>
+                                     FontSize="12"
+                                     Style="{StaticResource CyberTextBoxStyle}"/>
                         </Grid>
                     </Border>
                 </TabItem>

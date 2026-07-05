@@ -44,7 +44,8 @@
                 <StackPanel Orientation="Horizontal" Margin="0,0,12,0" VerticalAlignment="Center">
                     <TextBlock Text="扫描范围:" Foreground="{StaticResource TextSecondaryBrush}"
                                FontSize="12" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                    <Button Content="选择路径" FontSize="12" Height="28" Width="80"
+                    <Button Content="智能选择" FontSize="12" Height="32" Width="96"
+                            Padding="12,4"
                             Command="{Binding ChooseScanPathsCommand}"
                             Background="Transparent"
                             Foreground="{StaticResource TextPrimaryBrush}"

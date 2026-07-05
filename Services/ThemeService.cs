@@ -12,7 +12,10 @@ public enum ThemeType
     Dark,
 
     /// <summary>AI Agent 仪表盘风格</summary>
-    Dashboard
+    Dashboard,
+    Obsidian,
+    ContrastPro,
+    PaperUtility
 }
 
 /// <summary>
@@ -77,9 +80,12 @@ public class ThemeService : IThemeService
         // 根据主题类型加载对应的 ResourceDictionary
         var source = theme switch
         {
-            ThemeType.Dark => "pack://application:,,,/Resources/DarkTheme.xaml",
-            ThemeType.Dashboard => "pack://application:,,,/Resources/DashboardTheme.xaml",
-            _ => "pack://application:,,,/Resources/LightTheme.xaml"
+            ThemeType.Dark => "pack://application:,,,/Toolbox;component/Resources/DarkTheme.xaml",
+            ThemeType.Obsidian => "pack://application:,,,/Toolbox;component/Resources/ObsidianTheme.xaml",
+            ThemeType.ContrastPro => "pack://application:,,,/Toolbox;component/Resources/ContrastProTheme.xaml",
+            ThemeType.PaperUtility => "pack://application:,,,/Toolbox;component/Resources/PaperUtilityTheme.xaml",
+            ThemeType.Dashboard => "pack://application:,,,/Toolbox;component/Resources/ObsidianTheme.xaml",
+            _ => "pack://application:,,,/Toolbox;component/Resources/LightTheme.xaml"
         };
 
         var themeDict = new ResourceDictionary
@@ -87,5 +93,9 @@ public class ThemeService : IThemeService
             Source = new Uri(source)
         };
         app.Resources.MergedDictionaries.Add(themeDict);
+        app.Resources.MergedDictionaries.Add(new ResourceDictionary
+        {
+            Source = new Uri("pack://application:,,,/Toolbox;component/Resources/AgentCyberTheme.xaml")
+        });
     }
 }

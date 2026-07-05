@@ -100,7 +100,7 @@ public partial class MainViewModel : ViewModelBase
         InitializeDefaultCollapsedCategories();
 
         // 同步主题状态
-        _isDarkTheme = _theme.CurrentTheme is ThemeType.Dark or ThemeType.Dashboard;
+        _isDarkTheme = _theme.CurrentTheme is ThemeType.Dark or ThemeType.Dashboard or ThemeType.Obsidian;
     }
 
     private void InitializeDefaultCollapsedCategories()

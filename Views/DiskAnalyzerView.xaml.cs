@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.IO;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -20,6 +21,7 @@ public partial class DiskAnalyzerView : UserControl
 
     private DiskAnalyzerViewModel VM => (DiskAnalyzerViewModel)DataContext;
     private bool _chartsRendered;
+    private bool _isSubscribed;
     private TextBlock? _pieTooltip;
 
     public DiskAnalyzerView(DiskAnalyzerViewModel viewModel)
@@ -29,6 +31,7 @@ public partial class DiskAnalyzerView : UserControl
             InitializeComponent();
             DataContext = viewModel;
             Loaded += OnLoaded;
+            Unloaded += OnUnloaded;
 
             // 饼图悬停提示标签（固定在画布底部）
             _pieTooltip = new TextBlock
@@ -60,18 +63,33 @@ public partial class DiskAnalyzerView : UserControl
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        VM.PropertyChanged += (_, e) =>
+        if (!_isSubscribed)
         {
-            if (e.PropertyName == nameof(DiskAnalyzerViewModel.ChartData))
-            {
-                _chartsRendered = false;
-                Dispatcher.BeginInvoke(new Action(RenderCharts),
-                    System.Windows.Threading.DispatcherPriority.Loaded);
-            }
-        };
+            VM.PropertyChanged += OnViewModelPropertyChanged;
+            _isSubscribed = true;
+        }
+
         if (!_chartsRendered && VM.ChartData.Count > 0)
             Dispatcher.BeginInvoke(new Action(RenderCharts),
                 System.Windows.Threading.DispatcherPriority.Loaded);
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (!_isSubscribed) return;
+
+        VM.PropertyChanged -= OnViewModelPropertyChanged;
+        _isSubscribed = false;
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(DiskAnalyzerViewModel.ChartData))
+        {
+            _chartsRendered = false;
+            Dispatcher.BeginInvoke(new Action(RenderCharts),
+                System.Windows.Threading.DispatcherPriority.Loaded);
+        }
     }
 
     // ==================== 图表渲染 ====================

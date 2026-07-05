@@ -145,14 +145,14 @@ public partial class App : Application
         services.AddSingleton<IThemeService, ThemeService>();
         services.AddSingleton<ISingleInstanceService, SingleInstanceService>();
 
-        // ===== C盘清理（Transient） =====
+        // ===== C盘清理（Singleton ViewModel keeps scan results until app exit） =====
         services.AddSingleton<ICleanupService, CleanupService>();
-        services.AddTransient<CleanupViewModel>();
+        services.AddSingleton<CleanupViewModel>();
         services.AddTransient<Views.CleanupView>();
 
-        // ===== 磁盘空间分析（Transient） =====
+        // ===== 磁盘空间分析（Singleton ViewModel keeps scan results until app exit） =====
         services.AddSingleton<IDiskAnalyzerService, DiskAnalyzerService>();
-        services.AddTransient<DiskAnalyzerViewModel>();
+        services.AddSingleton<DiskAnalyzerViewModel>();
         services.AddTransient<Views.DiskAnalyzerView>();
 
         // ===== 大文件扫描（Transient） =====
@@ -164,18 +164,18 @@ public partial class App : Application
         services.AddTransient<DuplicateFinderViewModel>();
         services.AddTransient<Views.DuplicateFinderView>();
 
-        // ===== 文件强制删除（Transient） =====
+        // ===== 文件强制删除（Singleton ViewModel keeps pending file list until app exit） =====
         services.AddTransient<IFileUnlockService, FileUnlockService>();
-        services.AddTransient<ForceDeleteViewModel>();
+        services.AddSingleton<ForceDeleteViewModel>();
         services.AddTransient<ForceDeleteView>();
 
-        // ===== 文件粉碎（Transient） =====
+        // ===== 文件粉碎（Singleton ViewModel keeps pending file list until app exit） =====
         services.AddTransient<IFileShredderService, FileShredderService>();
-        services.AddTransient<FileShredderViewModel>();
+        services.AddSingleton<FileShredderViewModel>();
         services.AddTransient<FileShredderView>();
 
-        // ===== 批量重命名（Transient） =====
-        services.AddTransient<BatchRenameViewModel>();
+        // ===== 批量重命名（Singleton ViewModel keeps file/rule list until app exit） =====
+        services.AddSingleton<BatchRenameViewModel>();
         services.AddTransient<BatchRenameView>();
 
         // ===== 定时关机（Singleton服务 + Transient ViewModel/View） =====
@@ -249,6 +249,37 @@ public partial class App : Application
     /// </summary>
     private void PopulateNavigation(INavigationService nav)
     {
+        bool PopulateCleanNavigation()
+        {
+            nav.NavItems.Clear();
+            const string storage = "\U0001F4BE \u5B58\u50A8\u6E05\u7406";
+            const string files = "\U0001F4C1 \u6587\u4EF6\u64CD\u4F5C";
+            const string system = "\u2699\uFE0F \u7CFB\u7EDF\u7BA1\u7406";
+            const string debug = "\U0001F527 \u8C03\u8BD5\u529F\u80FD";
+            const string productivity = "\U0001F3AF \u65E5\u5E38\u6548\u7387";
+
+            nav.NavItems.Add(new NavItem { Name = "C\u76D8\u6E05\u7406", Category = storage, Icon = "\U0001F9F9", ViewType = typeof(Views.CleanupView), RequiresAdmin = false });
+            nav.NavItems.Add(new NavItem { Name = "\u78C1\u76D8\u7A7A\u95F4\u5206\u6790", Category = storage, Icon = "\U0001F4CA", ViewType = typeof(Views.DiskAnalyzerView), RequiresAdmin = false, IsPendingOptimization = false });
+            nav.NavItems.Add(new NavItem { Name = "\u5927\u6587\u4EF6\u626B\u63CF", Category = storage, Icon = "\U0001F50D", ViewType = typeof(Views.LargeFileScannerView), RequiresAdmin = false });
+            nav.NavItems.Add(new NavItem { Name = "\u91CD\u590D\u6587\u4EF6\u67E5\u627E", Category = storage, Icon = "\U0001F4C4", ViewType = typeof(Views.DuplicateFinderView), RequiresAdmin = false });
+            nav.NavItems.Add(new NavItem { Name = "\u6587\u4EF6\u5F3A\u5236\u5220\u9664", Category = files, Icon = "\U0001F5D1\uFE0F", ViewType = typeof(Views.ForceDeleteView), RequiresAdmin = false });
+            nav.NavItems.Add(new NavItem { Name = "\u6587\u4EF6\u7C89\u788E", Category = files, Icon = "\u2702\uFE0F", ViewType = typeof(Views.FileShredderView), RequiresAdmin = false });
+            nav.NavItems.Add(new NavItem { Name = "\u6279\u91CF\u91CD\u547D\u540D", Category = files, Icon = "\U0001F4DD", ViewType = typeof(Views.BatchRenameView), RequiresAdmin = false });
+            nav.NavItems.Add(new NavItem { Name = "\u5F00\u673A\u542F\u52A8\u9879\u7BA1\u7406", Category = system, Icon = "\U0001F680", ViewType = typeof(Views.StartupManagerView), RequiresAdmin = false });
+            nav.NavItems.Add(new NavItem { Name = "\u53F3\u952E\u83DC\u5355\u7BA1\u7406", Category = system, Icon = "\U0001F5B1\uFE0F", ViewType = typeof(Views.ContextMenuView), RequiresAdmin = false });
+            nav.NavItems.Add(new NavItem { Name = "\u6CE8\u518C\u8868\u6E05\u7406", Category = system, Icon = "\U0001F527", ViewType = typeof(Views.RegistryCleanerView), RequiresAdmin = true });
+            nav.NavItems.Add(new NavItem { Name = "\u5185\u5B58\u91CA\u653E", Category = system, Icon = "\U0001F4BE", ViewType = typeof(Views.MemoryReleaseView), RequiresAdmin = true });
+            nav.NavItems.Add(new NavItem { Name = "\u5B9A\u65F6\u5173\u673A", Category = system, Icon = "\u23F0", ViewType = typeof(Views.ScheduledShutdownView), RequiresAdmin = false });
+            nav.NavItems.Add(new NavItem { Name = "AI Agent \u68C0\u9A8C\uFF082.0.0 \u9884\u89C8\uFF09", Category = debug, Icon = "\U0001F9EA", ViewType = typeof(Views.AgentInspectorView), RequiresAdmin = false, IsPendingOptimization = true });
+            nav.NavItems.Add(new NavItem { Name = "\u622A\u5C4F\uFF08\u5F85\u4F18\u5316\uFF09", Category = debug, Icon = "\U0001F4F7", ViewType = typeof(Views.ScreenshotView), RequiresAdmin = false, IsPendingOptimization = true });
+            nav.NavItems.Add(new NavItem { Name = "\u53D6\u8272\u5668", Category = productivity, Icon = "\U0001F3A8", ViewType = typeof(Views.ColorPickerView), RequiresAdmin = false });
+            nav.NavItems.Add(new NavItem { Name = "\u7A97\u53E3\u7F6E\u9876", Category = productivity, Icon = "\U0001F4CC", ViewType = typeof(Views.AlwaysOnTopView), RequiresAdmin = false });
+            nav.NavItems.Add(new NavItem { Name = "\u4EFB\u52A1\uFF08\u5F85\u4F18\u5316\uFF09", Category = debug, Icon = "\U0001F4CB", ViewType = typeof(Views.TasksView), RequiresAdmin = false, IsPendingOptimization = true });
+            return true;
+        }
+
+        if (PopulateCleanNavigation())
+            return;
         // 💾 存储清理 — 磁盘空间释放相关
         nav.NavItems.Add(new NavItem
         {
@@ -366,8 +397,8 @@ public partial class App : Application
         // 🎯 日常效率 — 日常使用的高频小工具
         nav.NavItems.Add(new NavItem
         {
-            Name = "截屏",
-            Category = "🎯 日常效率",
+            Name = "截屏（待优化）",
+            Category = "🔧 调试功能",
             Icon = "📷",
             ViewType = typeof(Views.ScreenshotView),
             RequiresAdmin = false,
@@ -391,8 +422,8 @@ public partial class App : Application
         });
         nav.NavItems.Add(new NavItem
         {
-            Name = "任务",
-            Category = "🎯 日常效率",
+            Name = "任务（待优化）",
+            Category = "🔧 调试功能",
             Icon = "📋",
             ViewType = typeof(Views.TasksView),
             RequiresAdmin = false,

@@ -5,13 +5,25 @@ WPF + .NET 8 构建的 Windows 多功能系统工具箱。
 ## 运行要求
 
 - Windows 10/11 x64
-- [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/zh-cn/download/dotnet/8.0)
+- 下载 `Toolbox.exe`：无需额外安装 .NET。
+- 下载 `Toolbox-net8-required.exe`：需要已安装 [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/zh-cn/download/dotnet/8.0)。
 
 ## 下载
 
 正式发布文件请在 GitHub Releases 中下载：
 
-- [Toolbox.exe](https://github.com/kid-tea/toolbox-gx-/releases/download/v2.0.0/Toolbox.exe)
+- [Toolbox.exe](https://github.com/kid-tea/toolbox-gx-/releases/download/v2.0.0/Toolbox.exe)  
+  推荐给不确定是否安装 .NET 的用户。单文件自包含版，体积较大，不需要额外安装 .NET 运行时。
+- [Toolbox-net8-required.exe](https://github.com/kid-tea/toolbox-gx-/releases/download/v2.0.0/Toolbox-net8-required.exe)  
+  推荐给已经安装 .NET 8 Desktop Runtime 的用户。体积较小，但缺少运行时会无法启动。
+
+检查本机是否已安装 .NET 8 Desktop Runtime：
+
+```powershell
+dotnet --list-runtimes | findstr Microsoft.WindowsDesktop.App
+```
+
+如果输出里有 `Microsoft.WindowsDesktop.App 8.x.x`，可以下载小体积版 `Toolbox-net8-required.exe`；如果没有输出、提示找不到 `dotnet`，或不确定，就下载自包含版 `Toolbox.exe`。
 
 ## 功能模块
 
@@ -65,7 +77,7 @@ WPF + .NET 8 构建的 Windows 多功能系统工具箱。
 #### 构建与发布
 
 - 版本号升级为 `2.0.0`。
-- 发布产物改为单文件自包含 `publish/Toolbox.exe`，SQLite 原生库已整合进可执行文件。
+- 发布产物提供两个版本：`publish/Toolbox.exe` 为单文件自包含版，适合未安装或不确定是否安装 .NET 的用户；`publish/Toolbox-net8-required.exe` 为需要 .NET 8 Desktop Runtime 的小体积版。
 - 保留既有 1.0.x 更新历史，2.0.0 作为 AI Agent 与任务功能大版本更新。
 
 ### v1.0.5

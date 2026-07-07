@@ -19,13 +19,13 @@ public static class NativeMethods
     /// <param name="id">快捷键标识符</param>
     /// <param name="fsModifiers">修饰键（MOD_ALT=0x0001, MOD_CONTROL=0x0002, MOD_SHIFT=0x0004, MOD_WIN=0x0008）</param>
     /// <param name="vk">虚拟键码</param>
-    [DllImport("user32.dll")]
+    [DllImport("user32.dll", SetLastError = true)]
     public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
 
     /// <summary>卸载全局快捷键</summary>
     /// <param name="hWnd">窗口句柄</param>
     /// <param name="id">快捷键标识符</param>
-    [DllImport("user32.dll")]
+    [DllImport("user32.dll", SetLastError = true)]
     public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
     // ==================== 窗口操作 ====================

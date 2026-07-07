@@ -91,6 +91,7 @@ public partial class SettingsView : UserControl
 
         string combination = string.Join("+", parts);
         VM.RecordShortcut(combination);
+        (Window.GetWindow(this) as MainWindow)?.RefreshGlobalHotkeysFromSettings();
         _isRecording = false;
         e.Handled = true;
     }

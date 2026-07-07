@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.ComponentModel;
 using Toolbox.ViewModels;
 
 namespace Toolbox.Views;
@@ -26,9 +27,13 @@ public partial class ScreenshotView : UserControl
 
     /// <summary>拖拽移动的偏移量</summary>
     private Point _dragOffset;
+    private Point _dragEndOffset;
 
     /// <summary>是否正在拖拽移动选中标注</summary>
     private bool _isDragging;
+    private bool _vmEventsAttached;
+    private bool _isUserZooming;
+    private double _previewZoom = 1.0;
 
     /// <summary>当前标注的 WPF 预览形状（绘制过程中）</summary>
     private Shape? _previewShape;
@@ -42,6 +47,7 @@ public partial class ScreenshotView : UserControl
         InitializeComponent();
         DataContext = viewModel;
         Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
     /// <summary>
@@ -51,9 +57,85 @@ public partial class ScreenshotView : UserControl
     {
         if (DataContext is ScreenshotViewModel vm)
         {
-            // 监听标注集合变化，刷新标注画布
-            vm.Annotations.CollectionChanged += (_, _) => RefreshAnnotationCanvas();
+            if (!_vmEventsAttached)
+            {
+                vm.Annotations.CollectionChanged += (_, _) => RefreshAnnotationCanvas();
+                vm.PropertyChanged += OnViewModelPropertyChanged;
+                _vmEventsAttached = true;
+            }
+
+            ResetPreviewZoomToFit();
         }
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is ScreenshotViewModel vm && _vmEventsAttached)
+        {
+            vm.PropertyChanged -= OnViewModelPropertyChanged;
+            _vmEventsAttached = false;
+        }
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ScreenshotViewModel.CapturedImage) ||
+            e.PropertyName == nameof(ScreenshotViewModel.HasResult))
+        {
+            _isUserZooming = false;
+            Dispatcher.BeginInvoke(new Action(ResetPreviewZoomToFit));
+        }
+    }
+
+    private void OnPreviewScrollViewerSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (!_isUserZooming)
+            ResetPreviewZoomToFit();
+    }
+
+    private void ResetPreviewZoomToFit()
+    {
+        if (VM.CapturedImage == null || PreviewScrollViewer.ActualWidth <= 0 || PreviewScrollViewer.ActualHeight <= 0)
+            return;
+
+        double availableWidth = Math.Max(1, PreviewScrollViewer.ActualWidth - 18);
+        double availableHeight = Math.Max(1, PreviewScrollViewer.ActualHeight - 18);
+        double fit = Math.Min(availableWidth / VM.CapturedImage.PixelWidth, availableHeight / VM.CapturedImage.PixelHeight);
+        _previewZoom = Math.Clamp(fit, 0.05, 1.0);
+        ApplyPreviewZoom(_previewZoom);
+        PreviewScrollViewer.ScrollToHorizontalOffset(0);
+        PreviewScrollViewer.ScrollToVerticalOffset(0);
+    }
+
+    private void OnPreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (VM.CapturedImage == null)
+            return;
+
+        double oldZoom = _previewZoom;
+        double factor = e.Delta > 0 ? 1.12 : 1 / 1.12;
+        double newZoom = Math.Clamp(oldZoom * factor, 0.05, 6.0);
+        if (Math.Abs(newZoom - oldZoom) < 0.001)
+            return;
+
+        var mouse = e.GetPosition(PreviewScrollViewer);
+        double imageX = (PreviewScrollViewer.HorizontalOffset + mouse.X) / oldZoom;
+        double imageY = (PreviewScrollViewer.VerticalOffset + mouse.Y) / oldZoom;
+
+        _isUserZooming = true;
+        _previewZoom = newZoom;
+        ApplyPreviewZoom(newZoom);
+        PreviewSurface.UpdateLayout();
+
+        PreviewScrollViewer.ScrollToHorizontalOffset(Math.Max(0, imageX * newZoom - mouse.X));
+        PreviewScrollViewer.ScrollToVerticalOffset(Math.Max(0, imageY * newZoom - mouse.Y));
+        e.Handled = true;
+    }
+
+    private void ApplyPreviewZoom(double zoom)
+    {
+        PreviewScaleTransform.ScaleX = zoom;
+        PreviewScaleTransform.ScaleY = zoom;
     }
 
     // ==================== 标注画布鼠标事件 ====================
@@ -110,6 +192,7 @@ public partial class ScreenshotView : UserControl
         {
             // 结束拖拽移动
             _isDragging = false;
+            Mouse.Capture(null);
             return;
         }
 
@@ -139,6 +222,7 @@ public partial class ScreenshotView : UserControl
             _currentAnnotation = hitAnnotation;
             _isDragging = true;
             _dragOffset = new Point(pos.X - hitAnnotation.X, pos.Y - hitAnnotation.Y);
+            _dragEndOffset = new Point(pos.X - hitAnnotation.EndX, pos.Y - hitAnnotation.EndY);
             Mouse.Capture(canvas);
         }
     }
@@ -150,14 +234,27 @@ public partial class ScreenshotView : UserControl
     {
         if (_currentAnnotation == null) return;
 
-        _currentAnnotation.X = pos.X - _dragOffset.X;
-        _currentAnnotation.Y = pos.Y - _dragOffset.Y;
+        double newX = pos.X - _dragOffset.X;
+        double newY = pos.Y - _dragOffset.Y;
+        double dx = newX - _currentAnnotation.X;
+        double dy = newY - _currentAnnotation.Y;
+
+        _currentAnnotation.X = newX;
+        _currentAnnotation.Y = newY;
 
         // 如果是箭头，同时移动终点
         if (_currentAnnotation.Type == AnnotationTool.Arrow)
         {
-            _currentAnnotation.EndX = _currentAnnotation.EndX - _dragOffset.X + (pos.X - _currentAnnotation.X);
-            _currentAnnotation.EndY = _currentAnnotation.EndY - _dragOffset.Y + (pos.Y - _currentAnnotation.Y);
+            _currentAnnotation.EndX = pos.X - _dragEndOffset.X;
+            _currentAnnotation.EndY = pos.Y - _dragEndOffset.Y;
+        }
+        else if (_currentAnnotation.Type == AnnotationTool.Pen)
+        {
+            for (int i = 0; i < _currentAnnotation.Points.Count; i++)
+            {
+                var p = _currentAnnotation.Points[i];
+                _currentAnnotation.Points[i] = new Point(p.X + dx, p.Y + dy);
+            }
         }
 
         RefreshAnnotationCanvas();
@@ -183,6 +280,8 @@ public partial class ScreenshotView : UserControl
             EndX = pos.X,
             EndY = pos.Y
         };
+        if (VM.CurrentTool == AnnotationTool.Pen)
+            _currentAnnotation.Points.Add(pos);
 
         // 创建预览形状
         _previewShape = VM.CurrentTool switch
@@ -202,6 +301,15 @@ public partial class ScreenshotView : UserControl
                 X2 = pos.X,
                 Y2 = pos.Y
             },
+            AnnotationTool.Pen => new Polyline
+            {
+                Stroke = new SolidColorBrush(VM.AnnotationColor),
+                StrokeThickness = 2,
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round,
+                StrokeLineJoin = PenLineJoin.Round,
+                Points = new PointCollection { pos }
+            },
             AnnotationTool.Text => null, // 文字工具不显示预览
             AnnotationTool.Mosaic => new Rectangle
             {
@@ -214,8 +322,11 @@ public partial class ScreenshotView : UserControl
 
         if (_previewShape != null)
         {
-            Canvas.SetLeft(_previewShape, pos.X);
-            Canvas.SetTop(_previewShape, pos.Y);
+            if (_previewShape is not Line && _previewShape is not Polyline)
+            {
+                Canvas.SetLeft(_previewShape, pos.X);
+                Canvas.SetTop(_previewShape, pos.Y);
+            }
             AnnotationCanvas.Children.Add(_previewShape);
         }
     }
@@ -232,12 +343,31 @@ public partial class ScreenshotView : UserControl
         double w = Math.Abs(pos.X - _annotationStartPoint.X);
         double h = Math.Abs(pos.Y - _annotationStartPoint.Y);
 
-        _currentAnnotation.X = x;
-        _currentAnnotation.Y = y;
-        _currentAnnotation.Width = w;
-        _currentAnnotation.Height = h;
-        _currentAnnotation.EndX = pos.X;
-        _currentAnnotation.EndY = pos.Y;
+        if (_currentAnnotation.Type == AnnotationTool.Arrow)
+        {
+            _currentAnnotation.X = _annotationStartPoint.X;
+            _currentAnnotation.Y = _annotationStartPoint.Y;
+            _currentAnnotation.Width = w;
+            _currentAnnotation.Height = h;
+            _currentAnnotation.EndX = pos.X;
+            _currentAnnotation.EndY = pos.Y;
+        }
+        else if (_currentAnnotation.Type == AnnotationTool.Pen)
+        {
+            if (_currentAnnotation.Points.Count == 0 || Distance(_currentAnnotation.Points[^1], pos) >= 1.5)
+                _currentAnnotation.Points.Add(pos);
+
+            UpdatePenBounds(_currentAnnotation);
+        }
+        else
+        {
+            _currentAnnotation.X = x;
+            _currentAnnotation.Y = y;
+            _currentAnnotation.Width = w;
+            _currentAnnotation.Height = h;
+            _currentAnnotation.EndX = pos.X;
+            _currentAnnotation.EndY = pos.Y;
+        }
 
         if (_previewShape != null)
         {
@@ -254,6 +384,10 @@ public partial class ScreenshotView : UserControl
                 Canvas.SetTop(_previewShape, y);
                 rect.Width = w;
                 rect.Height = h;
+            }
+            else if (_previewShape is Polyline polyline)
+            {
+                polyline.Points = new PointCollection(_currentAnnotation.Points);
             }
         }
     }
@@ -292,6 +426,21 @@ public partial class ScreenshotView : UserControl
         }
 
         // 矩形/箭头/马赛克：检查最小尺寸
+        if (_currentAnnotation.Type == AnnotationTool.Pen)
+        {
+            UpdatePenBounds(_currentAnnotation);
+            if (_currentAnnotation.Points.Count < 2 || (_currentAnnotation.Width < 3 && _currentAnnotation.Height < 3))
+            {
+                _currentAnnotation = null;
+                return;
+            }
+
+            VM.AddAnnotation(_currentAnnotation);
+            _currentAnnotation = null;
+            RefreshAnnotationCanvas();
+            return;
+        }
+
         if (_currentAnnotation.Width < 5 && _currentAnnotation.Height < 5)
         {
             _currentAnnotation = null;
@@ -389,6 +538,22 @@ public partial class ScreenshotView : UserControl
                 AnnotationCanvas.Children.Add(line2);
                 break;
 
+            case AnnotationTool.Pen:
+                if (ann.Points.Count > 1)
+                {
+                    var polyline = new Polyline
+                    {
+                        Stroke = brush,
+                        StrokeThickness = penThickness,
+                        StrokeStartLineCap = PenLineCap.Round,
+                        StrokeEndLineCap = PenLineCap.Round,
+                        StrokeLineJoin = PenLineJoin.Round,
+                        Points = new PointCollection(ann.Points)
+                    };
+                    AnnotationCanvas.Children.Add(polyline);
+                }
+                break;
+
             case AnnotationTool.Text:
                 var textBlock = new System.Windows.Controls.TextBlock
                 {
@@ -469,6 +634,14 @@ public partial class ScreenshotView : UserControl
                 // 检测是否在线段附近
                 return DistanceToLine(pos, new Point(ann.X, ann.Y), new Point(ann.EndX, ann.EndY)) < 10;
 
+            case AnnotationTool.Pen:
+                for (int i = 1; i < ann.Points.Count; i++)
+                {
+                    if (DistanceToLine(pos, ann.Points[i - 1], ann.Points[i]) < 10)
+                        return true;
+                }
+                return false;
+
             case AnnotationTool.Text:
                 return pos.X >= ann.X - margin && pos.X <= ann.X + ann.Width + margin &&
                        pos.Y >= ann.Y - margin && pos.Y <= ann.Y + ann.Height + margin;
@@ -504,6 +677,21 @@ public partial class ScreenshotView : UserControl
         return Math.Sqrt(dx * dx + dy * dy);
     }
 
+    private static void UpdatePenBounds(AnnotationItem ann)
+    {
+        if (ann.Points.Count == 0)
+            return;
+
+        double minX = ann.Points.Min(p => p.X);
+        double minY = ann.Points.Min(p => p.Y);
+        double maxX = ann.Points.Max(p => p.X);
+        double maxY = ann.Points.Max(p => p.Y);
+        ann.X = minX;
+        ann.Y = minY;
+        ann.Width = maxX - minX;
+        ann.Height = maxY - minY;
+    }
+
     // ==================== 颜色按钮点击 ====================
 
     /// <summary>
@@ -520,6 +708,17 @@ public partial class ScreenshotView : UserControl
             }
             catch { /* 颜色解析失败，忽略 */ }
         }
+    }
+
+    private void OnPaletteButtonClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new ColorPaletteDialog(VM.AnnotationColor)
+        {
+            Owner = Window.GetWindow(this)
+        };
+
+        if (dialog.ShowDialog() == true)
+            VM.AnnotationColor = dialog.SelectedColor;
     }
 }
 
@@ -598,5 +797,125 @@ public class TextInputDialog : Window
             if (e.Key == Key.Enter) { DialogResult = true; Close(); }
             if (e.Key == Key.Escape) { DialogResult = false; Close(); }
         };
+    }
+}
+
+public class ColorPaletteDialog : Window
+{
+    private readonly Slider _redSlider;
+    private readonly Slider _greenSlider;
+    private readonly Slider _blueSlider;
+    private readonly Border _preview;
+    private readonly TextBlock _hexText;
+
+    public Color SelectedColor { get; private set; }
+
+    public ColorPaletteDialog(Color initialColor)
+    {
+        Title = "选择标注颜色";
+        Width = 340;
+        Height = 260;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        WindowStyle = WindowStyle.ToolWindow;
+        ResizeMode = ResizeMode.NoResize;
+        ShowInTaskbar = false;
+        SelectedColor = initialColor;
+
+        var root = new Grid { Margin = new Thickness(16) };
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        _preview = new Border
+        {
+            Width = 56,
+            Height = 32,
+            CornerRadius = new CornerRadius(6),
+            BorderBrush = Brushes.Gray,
+            BorderThickness = new Thickness(1),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Thickness(0, 0, 0, 10)
+        };
+        _hexText = new TextBlock
+        {
+            Margin = new Thickness(68, 6, 0, 0),
+            FontSize = 13,
+            VerticalAlignment = VerticalAlignment.Top
+        };
+        var previewGrid = new Grid();
+        previewGrid.Children.Add(_preview);
+        previewGrid.Children.Add(_hexText);
+        root.Children.Add(previewGrid);
+
+        _redSlider = CreateSlider(initialColor.R);
+        _greenSlider = CreateSlider(initialColor.G);
+        _blueSlider = CreateSlider(initialColor.B);
+        AddSliderRow(root, "R", _redSlider, 1);
+        AddSliderRow(root, "G", _greenSlider, 2);
+        AddSliderRow(root, "B", _blueSlider, 3);
+
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 14, 0, 0)
+        };
+        Grid.SetRow(buttons, 4);
+        var ok = new Button { Content = "确定", Width = 72, Height = 30, Margin = new Thickness(0, 0, 8, 0) };
+        ok.Click += (_, _) => { DialogResult = true; Close(); };
+        var cancel = new Button { Content = "取消", Width = 72, Height = 30 };
+        cancel.Click += (_, _) => { DialogResult = false; Close(); };
+        buttons.Children.Add(ok);
+        buttons.Children.Add(cancel);
+        root.Children.Add(buttons);
+
+        Content = root;
+        UpdateColor();
+    }
+
+    private Slider CreateSlider(byte value)
+    {
+        var slider = new Slider
+        {
+            Minimum = 0,
+            Maximum = 255,
+            Value = value,
+            TickFrequency = 1,
+            IsSnapToTickEnabled = true,
+            Width = 230
+        };
+        slider.ValueChanged += (_, _) => UpdateColor();
+        return slider;
+    }
+
+    private static void AddSliderRow(Grid root, string label, Slider slider, int row)
+    {
+        var panel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Margin = new Thickness(0, 5, 0, 0)
+        };
+        Grid.SetRow(panel, row);
+        panel.Children.Add(new TextBlock
+        {
+            Text = label,
+            Width = 24,
+            VerticalAlignment = VerticalAlignment.Center,
+            FontWeight = FontWeights.SemiBold
+        });
+        panel.Children.Add(slider);
+        root.Children.Add(panel);
+    }
+
+    private void UpdateColor()
+    {
+        SelectedColor = Color.FromRgb(
+            (byte)_redSlider.Value,
+            (byte)_greenSlider.Value,
+            (byte)_blueSlider.Value);
+        _preview.Background = new SolidColorBrush(SelectedColor);
+        _hexText.Text = $"#{SelectedColor.R:X2}{SelectedColor.G:X2}{SelectedColor.B:X2}";
     }
 }

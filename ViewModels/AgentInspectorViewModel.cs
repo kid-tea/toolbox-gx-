@@ -18,6 +18,7 @@ public partial class AgentInspectorViewModel : ViewModelBase
     private readonly IAgentEnvironmentService _environmentService;
     private readonly IAgentReportExportService _reportExportService;
     private readonly IAgentTokenHistoryService _tokenHistoryService;
+    private readonly IConfigService _configService;
     private CancellationTokenSource? _scanCts;
     private bool _isSyncingTokenDateText;
     private IReadOnlyList<AgentDailyTokenHistoryRecord> _tokenHistory = [];
@@ -28,6 +29,7 @@ public partial class AgentInspectorViewModel : ViewModelBase
     public ObservableCollection<AgentProjectRuleItem> ProjectRules { get; } = new();
     public ObservableCollection<AgentTokenUsageRecord> TokenRecords { get; } = new();
     public ObservableCollection<AgentTokenUsageRecord> SelectedDateTokenRecords { get; } = new();
+    public ObservableCollection<AgentTokenConversationSummary> SelectedDateTokenConversations { get; } = new();
     public ObservableCollection<AgentTokenModelSummary> TokenModelSummaries { get; } = new();
     public ObservableCollection<AgentTokenModelSummary> SelectedDayTokenModelSummaries { get; } = new();
     public ObservableCollection<AgentFinding> Findings { get; } = new();
@@ -121,11 +123,13 @@ public partial class AgentInspectorViewModel : ViewModelBase
     public AgentInspectorViewModel(
         IAgentEnvironmentService environmentService,
         IAgentReportExportService reportExportService,
-        IAgentTokenHistoryService tokenHistoryService)
+        IAgentTokenHistoryService tokenHistoryService,
+        IConfigService? configService = null)
     {
         _environmentService = environmentService;
         _reportExportService = reportExportService;
         _tokenHistoryService = tokenHistoryService;
+        _configService = configService ?? new ConfigService();
         _tokenHistory = _tokenHistoryService.LoadHistory(DateTime.Today);
         RefreshSelectedDayHistory();
         StatusMessage = "等待扫描。点击开始扫描后才会读取本机 AI Agent 配置。";
@@ -149,9 +153,20 @@ public partial class AgentInspectorViewModel : ViewModelBase
         try
         {
             CurrentScanTarget = "Codex / Claude Code / 项目规则";
-            var report = await _environmentService.ScanAsync(new AgentScanOptions(), _scanCts.Token);
+            var settings = _configService.LoadConfig<AppSettings>(_configService.SettingsFilePath) ?? new AppSettings();
+            var report = await _environmentService.ScanAsync(new AgentScanOptions
+            {
+                TokenSource = string.Equals(settings.AgentTokenDataSource, "Api", StringComparison.OrdinalIgnoreCase)
+                    ? AgentTokenSourceKind.Api
+                    : AgentTokenSourceKind.Local,
+                ApiProvider = settings.AgentTokenApiProvider,
+                ApiKey = settings.AgentTokenApiKey,
+                ApiModel = settings.AgentTokenApiModel
+            }, _scanCts.Token);
             ApplyReport(report);
-            StatusMessage = "扫描完成。所有数据均来自本机只读元数据。";
+            StatusMessage = string.Equals(settings.AgentTokenDataSource, "Api", StringComparison.OrdinalIgnoreCase)
+                ? "扫描完成。Token 数据来自设置里的 API 用量接口。"
+                : "扫描完成。所有数据均来自本机只读元数据。";
         }
         catch (OperationCanceledException)
         {
@@ -294,6 +309,7 @@ public partial class AgentInspectorViewModel : ViewModelBase
         ProjectRules.Clear();
         TokenRecords.Clear();
         SelectedDateTokenRecords.Clear();
+        SelectedDateTokenConversations.Clear();
         TokenModelSummaries.Clear();
         SelectedDayTokenModelSummaries.Clear();
         Findings.Clear();
@@ -362,6 +378,7 @@ public partial class AgentInspectorViewModel : ViewModelBase
     private void RefreshTokenDateView()
     {
         SelectedDateTokenRecords.Clear();
+        SelectedDateTokenConversations.Clear();
         var selectedDate = (SelectedTokenDate ?? DateTime.Today).Date;
         SelectedTokenDateLabel = selectedDate.ToString("yyyy-MM-dd");
 
@@ -374,9 +391,56 @@ public partial class AgentInspectorViewModel : ViewModelBase
         foreach (var record in records)
             SelectedDateTokenRecords.Add(record);
 
+        foreach (var conversation in BuildConversationSummaries(records))
+            SelectedDateTokenConversations.Add(conversation);
+
         SelectedDateTokensText = records.Sum(record => record.Tokens).ToString("N0");
         SelectedDateCallCountText = records.Sum(GetCallCount).ToString("N0");
         SelectedDateModelCountText = records.Select(record => record.Model).Distinct(StringComparer.OrdinalIgnoreCase).Count().ToString("N0");
+    }
+
+    private static IReadOnlyList<AgentTokenConversationSummary> BuildConversationSummaries(IReadOnlyList<AgentTokenUsageRecord> records)
+    {
+        return records
+            .GroupBy(record => new
+            {
+                record.Agent,
+                record.Model,
+                ConversationId = string.IsNullOrWhiteSpace(record.ConversationId)
+                    ? $"{record.Agent}:{record.Model}:{record.ConversationTitle}:{record.Date.ToLocalTime():yyyyMMddHHmmss}"
+                    : record.ConversationId,
+                Title = string.IsNullOrWhiteSpace(record.ConversationTitle)
+                    ? "(无标题对话)"
+                    : record.ConversationTitle
+            })
+            .Select(group =>
+            {
+                var orderedRequests = group
+                    .OrderBy(record => record.Date.ToLocalTime())
+                    .ThenByDescending(record => record.Tokens)
+                    .ToList();
+                var summary = new AgentTokenConversationSummary
+                {
+                    Agent = group.Key.Agent,
+                    Model = group.Key.Model,
+                    ConversationId = group.Key.ConversationId,
+                    ConversationTitle = group.Key.Title,
+                    Date = orderedRequests.First().Date,
+                    Tokens = group.Sum(record => record.Tokens),
+                    InputTokens = group.Sum(record => record.InputTokens),
+                    CachedInputTokens = group.Sum(record => record.CachedInputTokens),
+                    OutputTokens = group.Sum(record => record.OutputTokens),
+                    RequestCount = orderedRequests.Count
+                };
+                summary.TokensText = summary.Tokens.ToString("N0");
+                summary.RequestCountText = summary.RequestCount.ToString("N0");
+                foreach (var request in orderedRequests)
+                    summary.Requests.Add(request);
+                return summary;
+            })
+            .OrderByDescending(summary => summary.Date.ToLocalTime())
+            .ThenByDescending(summary => summary.Tokens)
+            .ToList();
     }
 
     private void RefreshSelectedDayHistory()
@@ -401,7 +465,9 @@ public partial class AgentInspectorViewModel : ViewModelBase
         }
 
         SelectedDayTotalTokensText = dailyRecord.TotalTokensText;
-        SelectedDayCallCountText = "暂无精确数据";
+        SelectedDayCallCountText = dailyRecord.CallCount > 0
+            ? dailyRecord.CallCount.ToString("N0")
+            : "暂无精确数据";
         SelectedDayCacheHitRateText = dailyRecord.CacheHitRateText;
         SelectedDayHistoryStatusText = currentRecords.Count > 0
             ? $"{selectedDate:yyyy-MM-dd} 来自当前扫描，并已写入 30 天历史"
@@ -429,6 +495,7 @@ public partial class AgentInspectorViewModel : ViewModelBase
                 var inputTokens = group.Sum(record => record.InputTokens);
                 var cachedInputTokens = group.Sum(record => record.CachedInputTokens);
                 var tokens = group.Sum(record => record.Tokens);
+                var callCount = group.Sum(GetCallCount);
                 return new AgentTokenModelSummary
                 {
                     Agent = group.Key.Agent,
@@ -437,8 +504,8 @@ public partial class AgentInspectorViewModel : ViewModelBase
                     TokensText = FormatCompactTokens(tokens),
                     InputTokens = inputTokens,
                     CachedInputTokens = cachedInputTokens,
-                    CallCount = 0,
-                    CallCountText = "暂无精确数据",
+                    CallCount = callCount,
+                    CallCountText = callCount > 0 ? callCount.ToString("N0") : "暂无精确数据",
                     CacheHitRateText = FormatCacheHitRate(inputTokens, cachedInputTokens)
                 };
             })
@@ -469,6 +536,7 @@ public partial class AgentInspectorViewModel : ViewModelBase
                 var inputTokens = group.Sum(record => record.InputTokens);
                 var cachedInputTokens = group.Sum(record => record.CachedInputTokens);
                 var tokens = group.Sum(record => record.Tokens);
+                var callCount = group.Sum(GetCallCount);
                 return new AgentTokenModelSummary
                 {
                     Agent = group.Key.Agent,
@@ -477,8 +545,8 @@ public partial class AgentInspectorViewModel : ViewModelBase
                     TokensText = FormatCompactTokens(tokens),
                     InputTokens = inputTokens,
                     CachedInputTokens = cachedInputTokens,
-                    CallCount = 0,
-                    CallCountText = "暂无精确数据",
+                    CallCount = callCount,
+                    CallCountText = callCount > 0 ? callCount.ToString("N0") : "暂无精确数据",
                     CacheHitRateText = FormatCacheHitRate(inputTokens, cachedInputTokens)
                 };
             })
@@ -651,6 +719,9 @@ public partial class AgentInspectorViewModel : ViewModelBase
     {
         if (inputTokens <= 0)
             return "暂无数据";
+
+        if (cachedInputTokens >= inputTokens)
+            return "暂无精确数据";
 
         var clampedCachedTokens = Math.Clamp(cachedInputTokens, 0, inputTokens);
         return $"{clampedCachedTokens * 100d / inputTokens:0.0}%";

@@ -423,6 +423,61 @@
                                            Margin="0,4,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                         </GroupBox>
+
+
+                        <GroupBox Header="AI Agent Token 数据源" Margin="0,0,0,12" Padding="8"
+                                  Foreground="{StaticResource TextPrimaryBrush}"
+                                  BorderBrush="{StaticResource BorderBrush}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="130"/>
+                                    <ColumnDefinition Width="260"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="统计方式" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,8"/>
+                                <ComboBox Grid.Row="0" Grid.Column="1" Width="220" Margin="0,0,0,8"
+                                          ItemsSource="{Binding AgentTokenDataSourceOptions}"
+                                          SelectedItem="{Binding AgentTokenDataSource, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Background="{StaticResource InputBackgroundBrush}"
+                                          Foreground="{StaticResource TextPrimaryBrush}"
+                                          BorderBrush="{StaticResource BorderBrush}"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="API 提供方" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,8"/>
+                                <ComboBox Grid.Row="1" Grid.Column="1" Width="220" Margin="0,0,0,8"
+                                          ItemsSource="{Binding AgentTokenApiProviderOptions}"
+                                          SelectedItem="{Binding AgentTokenApiProvider, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Background="{StaticResource InputBackgroundBrush}"
+                                          Foreground="{StaticResource TextPrimaryBrush}"
+                                          BorderBrush="{StaticResource BorderBrush}"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="模型" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,8"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" Width="220" Height="28" Margin="0,0,0,8"
+                                         Text="{Binding AgentTokenApiModel, UpdateSourceTrigger=PropertyChanged}"
+                                         Background="{StaticResource InputBackgroundBrush}"
+                                         Foreground="{StaticResource TextPrimaryBrush}"
+                                         BorderBrush="{StaticResource BorderBrush}" FontSize="12"/>
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="API Key" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,8"/>
+                                <TextBox Grid.Row="3" Grid.Column="1" Width="220" Height="28" Margin="0,0,0,8"
+                                         Text="{Binding AgentTokenApiKey, UpdateSourceTrigger=PropertyChanged}"
+                                         Background="{StaticResource InputBackgroundBrush}"
+                                         Foreground="{StaticResource TextPrimaryBrush}"
+                                         BorderBrush="{StaticResource BorderBrush}" FontSize="12"/>
+
+                                <TextBlock Grid.Row="4" Grid.ColumnSpan="3"
+                                           Text="Local 会读取 Codex/Claude 本地 transcript；Api 会按提供方与模型读取官方用量接口。API Key 只保存在本机 settings.json。"
+                                           Foreground="{StaticResource TextMutedBrush}" FontSize="11"
+                                           TextWrapping="Wrap"/>
+                            </Grid>
+                        </GroupBox>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>

@@ -22,13 +22,114 @@
                 <Setter Property="FontSize" Value="13"/>
             </Style>
 
+            <Style TargetType="{x:Type CalendarDayButton}">
+                <Setter Property="Background" Value="{StaticResource CyberPanelBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource CyberTextBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource CyberLineBrush}"/>
+                <Setter Property="FontFamily" Value="Consolas"/>
+            </Style>
+
+            <Style TargetType="{x:Type CalendarButton}">
+                <Setter Property="Background" Value="{StaticResource CyberPanelBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource CyberTextBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource CyberLineBrush}"/>
+                <Setter Property="FontFamily" Value="Consolas"/>
+            </Style>
+
+            <Style x:Key="TokenConversationExpanderStyle" TargetType="{x:Type Expander}">
+                <Setter Property="Foreground" Value="{StaticResource CyberTextBrush}"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderBrush" Value="{StaticResource CyberLineBrush}"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="FontFamily" Value="Microsoft YaHei UI, Segoe UI, Consolas"/>
+            </Style>
+
             <Style x:Key="CyberDatePickerStyle" TargetType="{x:Type DatePicker}">
+                <Setter Property="Height" Value="38"/>
                 <Setter Property="Background" Value="{StaticResource CyberInputBrush}"/>
                 <Setter Property="Foreground" Value="{StaticResource CyberTextBrush}"/>
                 <Setter Property="BorderBrush" Value="{StaticResource CyberLineBrush}"/>
                 <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="FontFamily" Value="Consolas"/>
                 <Setter Property="FontSize" Value="13"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type DatePicker}">
+                            <Grid SnapsToDevicePixels="True">
+                                <Border x:Name="DatePickerBorder"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="6">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="36"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <primitives:DatePickerTextBox x:Name="PART_TextBox"
+                                                                      Grid.Column="0"
+                                                                      Background="Transparent"
+                                                                      Foreground="{TemplateBinding Foreground}"
+                                                                      BorderThickness="0"
+                                                                      Padding="10,0,4,0"
+                                                                      VerticalContentAlignment="Center"/>
+
+                                        <Button x:Name="PART_Button"
+                                                Grid.Column="1"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Cursor="Hand"
+                                                Focusable="False">
+                                            <Grid Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Path Stroke="{StaticResource CyberCyanBrush}"
+                                                      StrokeThickness="1.55"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"
+                                                      Data="M 3 4.5 L 15 4.5 L 15 15 L 3 15 Z M 3 7.5 L 15 7.5 M 6 2.5 L 6 5.5 M 12 2.5 L 12 5.5"/>
+                                                <Path Fill="{StaticResource CyberCyanBrush}"
+                                                      Data="M 5 9 L 7 9 L 7 11 L 5 11 Z M 8 9 L 10 9 L 10 11 L 8 11 Z M 11 9 L 13 9 L 13 11 L 11 11 Z M 5 12 L 7 12 L 7 14 L 5 14 Z M 8 12 L 10 12 L 10 14 L 8 14 Z"/>
+                                            </Grid>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+
+                                <Popup x:Name="PART_Popup"
+                                       AllowsTransparency="True"
+                                       Placement="Bottom"
+                                       PlacementTarget="{Binding ElementName=DatePickerBorder}"
+                                       StaysOpen="False"
+                                       PopupAnimation="Fade">
+                                    <Border Background="{StaticResource CyberPanelBrush}"
+                                            BorderBrush="{StaticResource CyberLineBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="8"
+                                            Padding="8">
+                                        <Calendar x:Name="PART_Calendar"
+                                                  Background="{StaticResource CyberPanelBrush}"
+                                                  Foreground="{StaticResource CyberTextBrush}"
+                                                  BorderThickness="0"
+                                                  SelectedDate="{Binding SelectedDate, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                  DisplayDate="{Binding DisplayDate, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                  DisplayDateStart="{Binding DisplayDateStart, RelativeSource={RelativeSource TemplatedParent}}"
+                                                  DisplayDateEnd="{Binding DisplayDateEnd, RelativeSource={RelativeSource TemplatedParent}}"/>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="DatePickerBorder" Property="BorderBrush" Value="{StaticResource CyberFocusBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                    <Setter TargetName="DatePickerBorder" Property="BorderBrush" Value="{StaticResource CyberFocusBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="DatePickerBorder" Property="Opacity" Value="0.55"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
 
             <Style x:Key="StatusBadgeStyle" TargetType="Border">
@@ -494,7 +595,7 @@
                                                             <ColumnDefinition Width="112"/>
                                                         </Grid.ColumnDefinitions>
                                                         <TextBlock Text="{Binding Agent}" Foreground="{StaticResource CyberTextBrush}" FontFamily="Consolas"/>
-                                                        <TextBlock Grid.Column="1" Text="{Binding Model}" Style="{StaticResource CyberMutedTextStyle}" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding Model}" Style="{StaticResource CyberMutedTextStyle}" TextTrimming="CharacterEllipsis" FontSize="13"/>
                                                         <TextBlock Grid.Column="2" Text="{Binding TokensText}" Foreground="{StaticResource CyberCyanBrush}" FontFamily="Consolas" FontWeight="Bold" HorizontalAlignment="Right"/>
                                                         <TextBlock Grid.Column="3" Text="{Binding CallCountText}" Foreground="{StaticResource CyberMutedBrush}" FontFamily="Microsoft YaHei UI, Consolas" HorizontalAlignment="Right"/>
                                                         <TextBlock Grid.Column="4" Text="{Binding CacheHitRateText}" Foreground="{StaticResource CyberOrangeBrush}" FontFamily="Consolas" FontWeight="Bold" HorizontalAlignment="Right"/>
@@ -523,11 +624,11 @@
                                     <TextBlock Text="&#x65E5;&#x671F;" Style="{StaticResource CyberMutedTextStyle}" VerticalAlignment="Center"/>
                                         <TextBlock Text="{Binding TokenScopeNote}" Style="{StaticResource CyberMutedTextStyle}" FontSize="11" Margin="12,0,0,0" VerticalAlignment="Center"/>
                                     </StackPanel>
-                                    <TextBox Grid.Column="1"
-                                             Text="{Binding SelectedTokenDateText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Width="150"
-                                             VerticalAlignment="Center"
-                                             Style="{StaticResource CyberTextBoxStyle}"/>
+                                    <DatePicker Grid.Column="1"
+                                                SelectedDate="{Binding SelectedTokenDate, Mode=TwoWay}"
+                                                Width="162"
+                                                VerticalAlignment="Center"
+                                                Style="{StaticResource CyberDatePickerStyle}"/>
                                     <Button Grid.Column="2"
                                             Content="&#x4ECA;&#x5929;"
                                             Command="{Binding ShowTodayTokensCommand}"
@@ -571,7 +672,7 @@
                                                         <ColumnDefinition Width="112"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Text="{Binding Agent}" Foreground="{StaticResource CyberTextBrush}" FontFamily="Consolas"/>
-                                                    <TextBlock Grid.Column="1" Text="{Binding Model}" Style="{StaticResource CyberMutedTextStyle}" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Model}" Style="{StaticResource CyberMutedTextStyle}" TextTrimming="CharacterEllipsis" FontSize="13"/>
                                                     <TextBlock Grid.Column="2" Text="{Binding TokensText}" Foreground="{StaticResource CyberCyanBrush}" FontFamily="Consolas" FontWeight="Bold" HorizontalAlignment="Right"/>
                                                     <TextBlock Grid.Column="3" Text="{Binding CallCountText}" Foreground="{StaticResource CyberMutedBrush}" FontFamily="Microsoft YaHei UI, Consolas" HorizontalAlignment="Right"/>
                                                     <TextBlock Grid.Column="4" Text="{Binding CacheHitRateText}" Foreground="{StaticResource CyberOrangeBrush}" FontFamily="Consolas" FontWeight="Bold" HorizontalAlignment="Right"/>
@@ -583,76 +684,227 @@
                             </DockPanel>
                         </Border>
 
-                        <TabControl Grid.Row="3"
-                                    Style="{StaticResource CyberTabControlStyle}"
-                                    ItemContainerStyle="{StaticResource CyberTabItemStyle}">
-                            <TabItem Header="&#x6D88;&#x8017;&#x8D8B;&#x52BF;">
-                                <Grid Margin="0,8,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="12"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Border Grid.Column="0" Style="{StaticResource CyberPanelStyle}" Padding="8">
-                                        <oxy:PlotView Model="{Binding TokenTrendPlot}"
-                                                      Background="Transparent"
-                                                      BorderThickness="0"
-                                                      DefaultTrackerTemplate="{StaticResource CyberPlotTrackerTemplate}"/>
-                                    </Border>
-                                    <Border Grid.Column="2" Style="{StaticResource CyberPanelStyle}" Padding="8">
-                                        <oxy:PlotView Model="{Binding ModelCallTrendPlot}"
-                                                      Background="Transparent"
-                                                      BorderThickness="0"
-                                                      DefaultTrackerTemplate="{StaticResource CyberPlotTrackerTemplate}"/>
-                                    </Border>
-                                </Grid>
-                            </TabItem>
+                        <Grid Grid.Row="3" Margin="0,0,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Style="{StaticResource CyberPanelStyle}" Padding="8">
+                                <oxy:PlotView Model="{Binding TokenTrendPlot}"
+                                              Background="Transparent"
+                                              BorderThickness="0"
+                                              DefaultTrackerTemplate="{StaticResource CyberPlotTrackerTemplate}"/>
+                            </Border>
+                            <Border Grid.Column="2" Style="{StaticResource CyberPanelStyle}" Padding="8">
+                                <oxy:PlotView Model="{Binding ModelCallTrendPlot}"
+                                              Background="Transparent"
+                                              BorderThickness="0"
+                                              DefaultTrackerTemplate="{StaticResource CyberPlotTrackerTemplate}"/>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </TabItem>
 
-                            <TabItem Header="&#x5355;&#x6B21;&#x6D88;&#x8017;&#x660E;&#x7EC6;">
-                                <Border Style="{StaticResource CyberPanelStyle}" Margin="0,8,0,0" Padding="14">
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="*"/>
-                                        </Grid.RowDefinitions>
-                                        <Grid Grid.Row="0" Margin="0,0,0,8">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="96"/>
-                                                <ColumnDefinition Width="150"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="120"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="&#x8F6F;&#x4EF6;" Style="{StaticResource CyberMutedTextStyle}"/>
-                                            <TextBlock Grid.Column="1" Text="&#x65F6;&#x95F4;" Style="{StaticResource CyberMutedTextStyle}"/>
-                                            <TextBlock Grid.Column="2" Text="&#x6A21;&#x578B;" Style="{StaticResource CyberMutedTextStyle}"/>
-                                            <TextBlock Grid.Column="3" Text="Token" Style="{StaticResource CyberMutedTextStyle}" HorizontalAlignment="Right"/>
-                                        </Grid>
-                                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                                            <ItemsControl ItemsSource="{Binding SelectedDateTokenRecords}">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Border BorderBrush="{StaticResource CyberLineBrush}" BorderThickness="0,0,0,1" Padding="0,10">
-                                                            <Grid>
+                <TabItem Header="对话 Token 明细">
+                    <Grid Margin="0,8,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="0" Style="{StaticResource CyberPanelStyle}" Margin="0,0,0,12" Padding="14">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="日期" Style="{StaticResource CyberMutedTextStyle}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <DatePicker Grid.Column="1"
+                                            SelectedDate="{Binding SelectedTokenDate, Mode=TwoWay}"
+                                            Width="162"
+                                            VerticalAlignment="Center"
+                                            Style="{StaticResource CyberDatePickerStyle}"/>
+                                <Button Grid.Column="2"
+                                        Content="今天"
+                                        Command="{Binding ShowTodayTokensCommand}"
+                                        Style="{StaticResource CyberGhostButtonStyle}"
+                                        HorizontalAlignment="Left"
+                                        Margin="8,0,0,0"/>
+
+                                <StackPanel Grid.Column="3" Margin="20,0,0,0">
+                                    <TextBlock Text="选中日期" Style="{StaticResource CyberMutedTextStyle}"/>
+                                    <TextBlock Text="{Binding SelectedTokenDateLabel}" Foreground="{StaticResource CyberTextBrush}" FontFamily="Consolas" FontWeight="SemiBold"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="4" Margin="20,0,0,0">
+                                    <TextBlock Text="总 Token" Style="{StaticResource CyberMutedTextStyle}"/>
+                                    <TextBlock Text="{Binding SelectedDateTokensText}" Foreground="{StaticResource CyberCyanBrush}" FontSize="18" FontFamily="Consolas" FontWeight="Bold"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="5" Margin="20,0,0,0">
+                                    <TextBlock Text="请求数 / 模型" Style="{StaticResource CyberMutedTextStyle}"/>
+                                    <TextBlock Foreground="{StaticResource CyberMutedBrush}" FontFamily="Microsoft YaHei UI, Consolas" FontWeight="SemiBold">
+                                        <Run Text="{Binding SelectedDateCallCountText}"/>
+                                        <Run Text=" 次 / "/>
+                                        <Run Text="{Binding SelectedDateModelCountText}"/>
+                                        <Run Text=" 个"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Row="1" Style="{StaticResource CyberPanelStyle}" Margin="0,0,0,12" Padding="12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="对话默认折叠，只展示单条对话总用量；展开后查看每次请求的 Input / Cache / Output / Reasoning。"
+                                               Foreground="{StaticResource CyberTextBrush}"
+                                               FontWeight="SemiBold"/>
+                                    <TextBlock Text="日期过滤使用本地日期，并会跳过疑似 Codex 历史快照回放，避免把旧对话算进今天。"
+                                               Style="{StaticResource CyberMutedTextStyle}"
+                                               FontSize="12"
+                                               Margin="0,4,0,0"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1"
+                                           Text="点击每条对话左侧箭头展开"
+                                           Style="{StaticResource CyberMutedTextStyle}"
+                                           FontSize="12"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Row="2" Style="{StaticResource CyberPanelStyle}" Padding="0">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding SelectedDateTokenConversations}" Margin="14,4,14,14">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="{StaticResource CyberLineBrush}" BorderThickness="0,0,0,1" Padding="0,10">
+                                                <Expander Style="{StaticResource TokenConversationExpanderStyle}" IsExpanded="False">
+                                                    <Expander.Header>
+                                                        <Grid Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                              MinHeight="58"
+                                                              Margin="0,0,34,0"
+                                                              ClipToBounds="True">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="116"/>
+                                                                <ColumnDefinition Width="182"/>
+                                                                <ColumnDefinition Width="*" MinWidth="260"/>
+                                                                <ColumnDefinition Width="126"/>
+                                                                <ColumnDefinition Width="300"/>
+                                                                <ColumnDefinition Width="196"/>
+                                                            </Grid.ColumnDefinitions>
+
+                                                            <StackPanel VerticalAlignment="Center" Margin="0,0,14,0">
+                                                                <TextBlock Text="&#x8F6F;&#x4EF6;" Style="{StaticResource CyberMutedTextStyle}" FontSize="11"/>
+                                                                <TextBlock Text="{Binding Agent}" Foreground="{StaticResource CyberTextBrush}" FontFamily="Consolas" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                            </StackPanel>
+                                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,18,0">
+                                                                <TextBlock Text="&#x5F00;&#x59CB;&#x65F6;&#x95F4;" Style="{StaticResource CyberMutedTextStyle}" FontSize="11"/>
+                                                                <TextBlock Text="{Binding Date, StringFormat={}{0:yyyy-MM-dd HH:mm}}" Foreground="{StaticResource CyberTextBrush}" FontFamily="Consolas" FontSize="14" FontWeight="SemiBold"/>
+                                                            </StackPanel>
+                                                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,22,0">
+                                                                <TextBlock Text="&#x5BF9;&#x8BDD;" Style="{StaticResource CyberMutedTextStyle}" FontSize="11"/>
+                                                                <TextBlock Text="{Binding ConversationTitle}" Foreground="{StaticResource CyberTextBrush}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                            </StackPanel>
+                                                            <StackPanel Grid.Column="3" VerticalAlignment="Center" Margin="0,0,18,0">
+                                                                <TextBlock Text="&#x6A21;&#x578B;" Style="{StaticResource CyberMutedTextStyle}" FontSize="11"/>
+                                                                <TextBlock Text="{Binding Model}" Foreground="{StaticResource CyberMutedBrush}" FontSize="14" TextTrimming="CharacterEllipsis"/>
+                                                            </StackPanel>
+                                                            <StackPanel Grid.Column="4" VerticalAlignment="Center" Margin="0,0,20,0">
+                                                                <TextBlock Text="Input / Cache / Output" Style="{StaticResource CyberMutedTextStyle}" FontSize="11"/>
+                                                                <TextBlock Foreground="{StaticResource CyberMutedBrush}" FontFamily="Consolas" FontSize="14" TextTrimming="CharacterEllipsis">
+                                                                    <Run Text="{Binding InputTokens, StringFormat={}{0:N0}}"/>
+                                                                    <Run Text=" / "/>
+                                                                    <Run Text="{Binding CachedInputTokens, StringFormat={}{0:N0}}"/>
+                                                                    <Run Text=" / "/>
+                                                                    <Run Text="{Binding OutputTokens, StringFormat={}{0:N0}}"/>
+                                                                </TextBlock>
+                                                            </StackPanel>
+                                                            <StackPanel Grid.Column="5" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                                                <TextBlock Text="&#x5BF9;&#x8BDD;&#x603B;&#x7528;&#x91CF; / &#x6A21;&#x578B;&#x8BF7;&#x6C42;" Style="{StaticResource CyberMutedTextStyle}" FontSize="11" HorizontalAlignment="Right"/>
+                                                                <TextBlock HorizontalAlignment="Right" TextAlignment="Right">
+                                                                    <Run Text="{Binding TokensText}" Foreground="{StaticResource CyberCyanBrush}" FontFamily="Consolas" FontSize="18" FontWeight="Bold"/>
+                                                                    <Run Text=" Token" Foreground="{StaticResource CyberCyanBrush}" FontSize="13" FontWeight="SemiBold"/>
+                                                                    <Run Text="  ·  " Foreground="{StaticResource CyberMutedBrush}" FontSize="13"/>
+                                                                    <Run Text="{Binding RequestCountText}" Foreground="{StaticResource CyberTextBrush}" FontFamily="Consolas" FontSize="15" FontWeight="SemiBold"/>
+                                                                    <Run Text=" &#x6B21;&#x8BF7;&#x6C42;" Foreground="{StaticResource CyberMutedBrush}" FontSize="12"/>
+                                                                </TextBlock>
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Expander.Header>
+
+                                                    <Border Background="{StaticResource CyberInputBrush}"
+                                                            BorderBrush="{StaticResource CyberLineBrush}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="8"
+                                                            Padding="12"
+                                                            Margin="22,10,0,0">
+                                                        <Grid>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="Auto"/>
+                                                            </Grid.RowDefinitions>
+                                                            <Grid Grid.Row="0" Margin="0,0,0,6">
                                                                 <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="96"/>
-                                                                    <ColumnDefinition Width="150"/>
+                                                                    <ColumnDefinition Width="160"/>
+                                                                    <ColumnDefinition Width="130"/>
                                                                     <ColumnDefinition Width="*"/>
-                                                                    <ColumnDefinition Width="120"/>
+                                                                    <ColumnDefinition Width="320"/>
+                                                                    <ColumnDefinition Width="110"/>
                                                                 </Grid.ColumnDefinitions>
-                                                                <TextBlock Text="{Binding Agent}" Style="{StaticResource CyberMutedTextStyle}"/>
-                                                                <TextBlock Grid.Column="1" Text="{Binding Date, StringFormat={}{0:yyyy-MM-dd HH:mm}}" Foreground="{StaticResource CyberTextBrush}" FontFamily="Consolas"/>
-                                                                <TextBlock Grid.Column="2" Text="{Binding Model}" Style="{StaticResource CyberMutedTextStyle}" TextTrimming="CharacterEllipsis"/>
-                                                                <TextBlock Grid.Column="3" Text="{Binding Tokens, StringFormat={}{0:N0}}" Foreground="{StaticResource CyberCyanBrush}" FontFamily="Consolas" FontWeight="Bold" HorizontalAlignment="Right"/>
+                                                                <TextBlock Text="&#x65F6;&#x95F4;" Style="{StaticResource CyberMutedTextStyle}" FontSize="11"/>
+                                                                <TextBlock Grid.Column="1" Text="&#x6A21;&#x578B;" Style="{StaticResource CyberMutedTextStyle}" FontSize="11"/>
+                                                                <TextBlock Grid.Column="2" Text="&#x5BF9;&#x8BDD;&#x7247;&#x6BB5;" Style="{StaticResource CyberMutedTextStyle}" FontSize="11"/>
+                                                                <TextBlock Grid.Column="3" Text="Input / Cache / Output / Reasoning" Style="{StaticResource CyberMutedTextStyle}" FontSize="11"/>
+                                                                <TextBlock Grid.Column="4" Text="Token" Style="{StaticResource CyberMutedTextStyle}" FontSize="11" HorizontalAlignment="Right"/>
                                                             </Grid>
-                                                        </Border>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </ScrollViewer>
-                                    </Grid>
-                                </Border>
-                            </TabItem>
-                        </TabControl>
+                                                            <ItemsControl Grid.Row="1" ItemsSource="{Binding Requests}">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <Border BorderBrush="{StaticResource CyberLineBrush}" BorderThickness="0,1,0,0" Padding="0,8">
+                                                                            <Grid>
+                                                                                <Grid.ColumnDefinitions>
+                                                                                    <ColumnDefinition Width="160"/>
+                                                                                    <ColumnDefinition Width="130"/>
+                                                                                    <ColumnDefinition Width="*"/>
+                                                                                    <ColumnDefinition Width="320"/>
+                                                                                    <ColumnDefinition Width="110"/>
+                                                                                </Grid.ColumnDefinitions>
+                                                                                <TextBlock Text="{Binding Date, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}" Foreground="{StaticResource CyberTextBrush}" FontFamily="Consolas" FontSize="13"/>
+                                                                                <TextBlock Grid.Column="1" Text="{Binding Model}" Style="{StaticResource CyberMutedTextStyle}" TextTrimming="CharacterEllipsis" FontSize="13"/>
+                                                                                <TextBlock Grid.Column="2" Text="{Binding ConversationTitle}" Foreground="{StaticResource CyberTextBrush}" TextTrimming="CharacterEllipsis" FontSize="13" Margin="0,0,12,0"/>
+                                                                                <TextBlock Grid.Column="3" Foreground="{StaticResource CyberMutedBrush}" FontFamily="Consolas" FontSize="13">
+                                                                                    <Run Text="{Binding InputTokens, StringFormat={}{0:N0}}"/>
+                                                                                    <Run Text=" / "/>
+                                                                                    <Run Text="{Binding CachedInputTokens, StringFormat={}{0:N0}}"/>
+                                                                                    <Run Text=" / "/>
+                                                                                    <Run Text="{Binding OutputTokens, StringFormat={}{0:N0}}"/>
+                                                                                    <Run Text=" / "/>
+                                                                                    <Run Text="{Binding ReasoningOutputTokens, StringFormat={}{0:N0}}"/>
+                                                                                </TextBlock>
+                                                                                <TextBlock Grid.Column="4" Text="{Binding Tokens, StringFormat={}{0:N0}}" Foreground="{StaticResource CyberCyanBrush}" FontFamily="Consolas" FontWeight="Bold" HorizontalAlignment="Right"/>
+                                                                            </Grid>
+                                                                        </Border>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </Grid>
+                                                    </Border>
+                                                </Expander>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
                     </Grid>
                 </TabItem>
 

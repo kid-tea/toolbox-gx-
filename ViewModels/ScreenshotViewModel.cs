@@ -36,6 +36,8 @@ public enum AnnotationTool
     Rectangle,
     /// <summary>箭头工具</summary>
     Arrow,
+    /// <summary>自由画笔工具</summary>
+    Pen,
     /// <summary>文字工具</summary>
     Text,
     /// <summary>马赛克工具</summary>
@@ -91,6 +93,9 @@ public partial class AnnotationItem : ObservableObject
     [ObservableProperty]
     private double _endY;
 
+    /// <summary>自由画笔点集（相对于截图左上角）</summary>
+    public List<Point> Points { get; set; } = new();
+
     /// <summary>
     /// 创建标注项的深拷贝
     /// </summary>
@@ -106,7 +111,8 @@ public partial class AnnotationItem : ObservableObject
         StrokeThickness = StrokeThickness,
         IsSelected = IsSelected,
         EndX = EndX,
-        EndY = EndY
+        EndY = EndY,
+        Points = Points.Select(p => new Point(p.X, p.Y)).ToList()
     };
 }
 
@@ -379,28 +385,18 @@ public partial class ScreenshotViewModel : ViewModelBase
     private async Task CaptureRegionAsync()
     {
         StatusMessage = "请用鼠标拖拽选择截图区域...";
+        _log.LogInfo("区域截图启动：准备显示选区窗口");
 
-        var mainWindow = Application.Current.MainWindow;
-        var previousState = mainWindow?.WindowState ?? WindowState.Normal;
-        bool wasHidden = false;
+        await Task.Delay(80);
 
-        if (mainWindow != null)
-        {
-            // 完全隐藏主窗口，确保全屏选区不被遮挡
-            mainWindow.Hide();
-            wasHidden = true;
-            await Task.Delay(200); // 等待窗口隐藏生效
-        }
-
-        try
         {
             var selectionWindow = new Views.ScreenshotSelectionWindow();
-            // 设置 Owner 确保选区窗口正确显示（即使主窗口已隐藏）
-            if (mainWindow != null)
-                selectionWindow.Owner = mainWindow;
+            // 不隐藏主窗口：前台使用快捷键时可直接截取 Toolbox 自身界面。
             selectionWindow.WindowStartupLocation = WindowStartupLocation.Manual;
 
+            _log.LogInfo("区域截图：显示选区窗口");
             bool? result = selectionWindow.ShowDialog();
+            _log.LogInfo($"区域截图：选区窗口关闭，结果={result}, 区域={selectionWindow.SelectedRegion}");
 
             if (result == true && selectionWindow.SelectedRegion.Width > 0 && selectionWindow.SelectedRegion.Height > 0)
             {
@@ -425,16 +421,6 @@ public partial class ScreenshotViewModel : ViewModelBase
             else
             {
                 StatusMessage = "区域选择已取消";
-            }
-        }
-        finally
-        {
-            if (wasHidden && mainWindow != null)
-            {
-                // 总是恢复到正常状态，不保留之前的最小化状态
-                mainWindow.Show();
-                mainWindow.WindowState = WindowState.Normal;
-                mainWindow.Activate();
             }
         }
     }
@@ -548,6 +534,7 @@ public partial class ScreenshotViewModel : ViewModelBase
             "Select" => AnnotationTool.Select,
             "Rectangle" => AnnotationTool.Rectangle,
             "Arrow" => AnnotationTool.Arrow,
+            "Pen" => AnnotationTool.Pen,
             "Text" => AnnotationTool.Text,
             "Mosaic" => AnnotationTool.Mosaic,
             _ => AnnotationTool.Select
@@ -796,25 +783,21 @@ public partial class ScreenshotViewModel : ViewModelBase
                 break;
 
             case AnnotationTool.Arrow:
-                // 绘制箭头
-                double startX = ann.X;
-                double startY = ann.Y;
-                double endX = ann.EndX;
-                double endY = ann.EndY;
-                ctx.DrawLine(pen, new Point(startX, startY), new Point(endX, endY));
+                DrawArrow(ctx, pen, new Point(ann.X, ann.Y), new Point(ann.EndX, ann.EndY));
+                break;
 
-                // 绘制箭头尖端
-                double angle = Math.Atan2(endY - startY, endX - startX);
-                double arrowLen = 12;
-                double arrowAngle = Math.PI / 6;
-                var p1 = new Point(
-                    endX - arrowLen * Math.Cos(angle - arrowAngle),
-                    endY - arrowLen * Math.Sin(angle - arrowAngle));
-                var p2 = new Point(
-                    endX - arrowLen * Math.Cos(angle + arrowAngle),
-                    endY - arrowLen * Math.Sin(angle + arrowAngle));
-                ctx.DrawLine(pen, new Point(endX, endY), p1);
-                ctx.DrawLine(pen, new Point(endX, endY), p2);
+            case AnnotationTool.Pen:
+                if (ann.Points.Count > 1)
+                {
+                    var geometry = new StreamGeometry();
+                    using (var geo = geometry.Open())
+                    {
+                        geo.BeginFigure(ann.Points[0], false, false);
+                        geo.PolyLineTo(ann.Points.Skip(1).ToList(), true, true);
+                    }
+                    geometry.Freeze();
+                    ctx.DrawGeometry(null, pen, geometry);
+                }
                 break;
 
             case AnnotationTool.Text:
@@ -847,5 +830,22 @@ public partial class ScreenshotViewModel : ViewModelBase
                 }
                 break;
         }
+    }
+
+    private static void DrawArrow(DrawingContext ctx, Pen pen, Point start, Point end)
+    {
+        ctx.DrawLine(pen, start, end);
+
+        double angle = Math.Atan2(end.Y - start.Y, end.X - start.X);
+        double arrowLen = 12;
+        double arrowAngle = Math.PI / 6;
+        var p1 = new Point(
+            end.X - arrowLen * Math.Cos(angle - arrowAngle),
+            end.Y - arrowLen * Math.Sin(angle - arrowAngle));
+        var p2 = new Point(
+            end.X - arrowLen * Math.Cos(angle + arrowAngle),
+            end.Y - arrowLen * Math.Sin(angle + arrowAngle));
+        ctx.DrawLine(pen, end, p1);
+        ctx.DrawLine(pen, end, p2);
     }
 }

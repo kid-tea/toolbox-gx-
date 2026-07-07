@@ -89,13 +89,19 @@
                            Foreground="{StaticResource TextMutedBrush}" FontSize="16"
                            HorizontalAlignment="Center" VerticalAlignment="Center"
                            Visibility="{Binding HasResult, Converter={StaticResource InverseBoolConverter}}"/>
-                <Grid Visibility="{Binding HasResult, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <ScrollViewer x:Name="PreviewScrollViewer"
-                                  HorizontalScrollBarVisibility="Auto"
-                                  VerticalScrollBarVisibility="Auto">
-                        <Grid>
-                            <Image x:Name="PreviewImage" Source="{Binding CapturedImage}"
-                                   Stretch="None" RenderOptions.BitmapScalingMode="HighQuality"/>
+                 <Grid Visibility="{Binding HasResult, Converter={StaticResource BoolToVisibilityConverter}}">
+                     <ScrollViewer x:Name="PreviewScrollViewer"
+                                   HorizontalScrollBarVisibility="Visible"
+                                   VerticalScrollBarVisibility="Auto"
+                                   PreviewMouseWheel="OnPreviewMouseWheel"
+                                   SizeChanged="OnPreviewScrollViewerSizeChanged">
+                         <Grid x:Name="PreviewSurface"
+                               RenderTransformOrigin="0,0">
+                             <Grid.LayoutTransform>
+                                 <ScaleTransform x:Name="PreviewScaleTransform" ScaleX="1" ScaleY="1"/>
+                             </Grid.LayoutTransform>
+                             <Image x:Name="PreviewImage" Source="{Binding CapturedImage}"
+                                    Stretch="None" RenderOptions.BitmapScalingMode="HighQuality"/>
                             <Canvas x:Name="AnnotationCanvas"
                                     Width="{Binding CapturedImage.PixelWidth}"
                                     Height="{Binding CapturedImage.PixelHeight}"
@@ -118,12 +124,14 @@
                     CornerRadius="{StaticResource DefaultCornerRadius}" Padding="8"
                     Visibility="{Binding HasResult, Converter={StaticResource BoolToVisibilityConverter}}"
                     Margin="0,0,0,8">
-                <StackPanel Orientation="Horizontal">
+                <WrapPanel Orientation="Horizontal">
                     <Button Content="↖ 选择" Command="{Binding SetAnnotationToolCommand}" CommandParameter="Select"
                             Style="{StaticResource SecondaryBtnStyle}" Padding="8,4" Margin="0,0,4,0" FontSize="11"/>
                     <Button Content="▭ 矩形" Command="{Binding SetAnnotationToolCommand}" CommandParameter="Rectangle"
                             Style="{StaticResource SecondaryBtnStyle}" Padding="8,4" Margin="0,0,4,0" FontSize="11"/>
                     <Button Content="→ 箭头" Command="{Binding SetAnnotationToolCommand}" CommandParameter="Arrow"
+                            Style="{StaticResource SecondaryBtnStyle}" Padding="8,4" Margin="0,0,4,0" FontSize="11"/>
+                    <Button Content="✎ 画笔" Command="{Binding SetAnnotationToolCommand}" CommandParameter="Pen"
                             Style="{StaticResource SecondaryBtnStyle}" Padding="8,4" Margin="0,0,4,0" FontSize="11"/>
                     <Button Content="T 文字" Command="{Binding SetAnnotationToolCommand}" CommandParameter="Text"
                             Style="{StaticResource SecondaryBtnStyle}" Padding="8,4" Margin="0,0,4,0" FontSize="11"/>
@@ -145,6 +153,9 @@
                     <Button Width="22" Height="22" Margin="0,0,12,0"
                             Background="Purple" BorderThickness="0" Cursor="Hand"
                             Click="OnColorButtonClick" Tag="Purple"/>
+                    <Button Content="🎨 调色盘"
+                            Style="{StaticResource SecondaryBtnStyle}" Padding="8,4" Margin="0,0,12,0" FontSize="11"
+                            Click="OnPaletteButtonClick"/>
                     <Separator Width="1" Margin="0,2" Background="{StaticResource BorderBrush}"/>
                     <Button Content="↩ 撤销" Command="{Binding UndoAnnotationCommand}"
                             Style="{StaticResource SecondaryBtnStyle}" Padding="8,4" Margin="8,0,4,0" FontSize="11"
@@ -157,7 +168,7 @@
                     <TextBlock Text="{Binding AnnotationCount, StringFormat='标注: {0}'}"
                                VerticalAlignment="Center" FontSize="11"
                                Foreground="{StaticResource TextMutedBrush}"/>
-                </StackPanel>
+                </WrapPanel>
             </Border>
 
             <!-- 操作按钮 -->

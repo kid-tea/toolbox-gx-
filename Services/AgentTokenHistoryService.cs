@@ -8,6 +8,8 @@ namespace Toolbox.Services;
 public sealed class AgentTokenHistoryService : IAgentTokenHistoryService
 {
     private const int RetentionDays = 30;
+    private const long MaxPlausibleDailyTokens = 50_000_000;
+    private const long MaxPlausibleModelTokens = 50_000_000;
     private readonly string _historyPath;
     private readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
 
@@ -38,7 +40,7 @@ public sealed class AgentTokenHistoryService : IAgentTokenHistoryService
         var merged = LoadHistory(today)
             .ToDictionary(record => record.Date.Date, record => record);
 
-        foreach (var dailyRecord in BuildDailyRecords(records))
+        foreach (var dailyRecord in BuildDailyRecords(records, today))
             merged[dailyRecord.Date.Date] = dailyRecord;
 
         var pruned = Prune(merged.Values, today);
@@ -46,9 +48,11 @@ public sealed class AgentTokenHistoryService : IAgentTokenHistoryService
         return pruned;
     }
 
-    private static List<AgentDailyTokenHistoryRecord> BuildDailyRecords(IEnumerable<AgentTokenUsageRecord> records)
+    private static List<AgentDailyTokenHistoryRecord> BuildDailyRecords(IEnumerable<AgentTokenUsageRecord> records, DateTime today)
     {
         return records
+            .Where(record => record.Date.ToLocalTime().Date <= today.Date)
+            .Where(record => record.Tokens is > 0 and <= MaxPlausibleModelTokens)
             .GroupBy(record => record.Date.ToLocalTime().Date)
             .Select(group =>
             {
@@ -71,6 +75,7 @@ public sealed class AgentTokenHistoryService : IAgentTokenHistoryService
                         var tokens = modelGroup.Sum(record => record.Tokens);
                         var inputTokens = modelGroup.Sum(record => record.InputTokens);
                         var cachedInputTokens = modelGroup.Sum(record => record.CachedInputTokens);
+                        var callCount = modelGroup.Sum(GetCallCount);
                         return new AgentTokenModelSummary
                         {
                             Agent = modelGroup.Key.Agent,
@@ -79,8 +84,8 @@ public sealed class AgentTokenHistoryService : IAgentTokenHistoryService
                             TokensText = FormatCompactTokens(tokens),
                             InputTokens = inputTokens,
                             CachedInputTokens = cachedInputTokens,
-                            CallCount = 0,
-                            CallCountText = "暂无精确数据",
+                            CallCount = callCount,
+                            CallCountText = callCount > 0 ? callCount.ToString("N0") : "暂无精确数据",
                             CacheHitRateText = FormatCacheHitRate(inputTokens, cachedInputTokens)
                         };
                     })
@@ -91,6 +96,7 @@ public sealed class AgentTokenHistoryService : IAgentTokenHistoryService
 
                 return daily;
             })
+            .Where(record => IsCredibleDailyRecord(record, today))
             .OrderByDescending(record => record.Date)
             .ToList();
     }
@@ -122,8 +128,26 @@ public sealed class AgentTokenHistoryService : IAgentTokenHistoryService
         var cutoff = today.Date.AddDays(-(RetentionDays - 1));
         return records
             .Where(record => record.Date.Date >= cutoff && record.Date.Date <= today.Date)
+            .Where(record => IsCredibleDailyRecord(record, today))
             .OrderByDescending(record => record.Date)
             .ToList();
+    }
+
+    private static bool IsCredibleDailyRecord(AgentDailyTokenHistoryRecord record, DateTime today)
+    {
+        if (record.Date.Date > today.Date)
+            return false;
+
+        if (record.TotalTokens is < 0 or > MaxPlausibleDailyTokens)
+            return false;
+
+        if (record.ModelSummaries.Any(summary => summary.Tokens is < 0 or > MaxPlausibleModelTokens))
+            return false;
+
+        if (record.InputTokens > 0 && record.CachedInputTokens >= record.InputTokens && record.TotalTokens > 1_000_000)
+            return false;
+
+        return true;
     }
 
     private static int GetCallCount(AgentTokenUsageRecord record)
@@ -148,6 +172,9 @@ public sealed class AgentTokenHistoryService : IAgentTokenHistoryService
     {
         if (inputTokens <= 0)
             return "暂无数据";
+
+        if (cachedInputTokens >= inputTokens)
+            return "暂无精确数据";
 
         var clampedCachedTokens = Math.Clamp(cachedInputTokens, 0, inputTokens);
         return $"{clampedCachedTokens * 100d / inputTokens:0.0}%";

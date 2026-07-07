@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using CommunityToolkit.Mvvm.Input;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -30,6 +32,11 @@ public partial class MainWindow : Window
     private readonly ILogService _log;
     private readonly IConfigService _config;
     private readonly IThemeService _theme;
+    private IntPtr _hotkeyHwnd;
+    private HwndSource? _hotkeySource;
+    private bool _hotkeyHookRegistered;
+    private bool _isScreenshotHotkeyRunning;
+    private bool _isColorPickerHotkeyRunning;
 
     public bool IsSidebarExpanded
     {
@@ -47,6 +54,7 @@ public partial class MainWindow : Window
     private const uint MOD_CONTROL = 0x0002;
     private const uint MOD_SHIFT = 0x0004;
     private const uint MOD_WIN = 0x0008;
+    private const uint MOD_NOREPEAT = 0x4000;
 
     /// <summary>
     /// 构造函数，通过 DI 获取导航和日志服务
@@ -74,8 +82,8 @@ public partial class MainWindow : Window
         _nav.NavigationChanged += OnNavigationChanged;
         _theme.ThemeChanged += OnThemeChanged;
 
-        // 窗口加载完成后注册全局快捷键
-        Loaded += RegisterGlobalHotkeys;
+        // 窗口句柄创建完成后注册全局快捷键。Loaded 有时太晚且不利于定位注册失败。
+        SourceInitialized += RegisterGlobalHotkeys;
 
         // 恢复上次的导航状态
         if (_nav.CurrentViewType != null)
@@ -299,43 +307,82 @@ public partial class MainWindow : Window
     /// 从 AppSettings 读取快捷键配置，解析后注册系统级热键
     /// 使用 WndProc 消息钩子接收 WM_HOTKEY 消息
     /// </summary>
-    private void RegisterGlobalHotkeys(object? sender, RoutedEventArgs e)
+    private void RegisterGlobalHotkeys(object? sender, EventArgs e)
     {
-        var hwnd = new WindowInteropHelper(this).Handle;
-        var hwndSource = HwndSource.FromHwnd(hwnd);
-        hwndSource?.AddHook(WndProc);
-
-        // 从配置文件加载快捷键设置
-        var settings = _config.LoadConfig<AppSettings>(_config.SettingsFilePath);
-
-        // 注册截屏快捷键 (ID=1)
-        if (TryParseShortcut(settings.ScreenshotShortcut, out uint mod1, out uint vk1))
+        _hotkeyHwnd = new WindowInteropHelper(this).Handle;
+        if (_hotkeyHwnd == IntPtr.Zero)
         {
-            if (Native.NativeMethods.RegisterHotKey(hwnd, HOTKEY_ID_SCREENSHOT, mod1, vk1))
-                _log.LogInfo($"Hotkey registered: Screenshot ({settings.ScreenshotShortcut})");
-            else
-                _log.LogWarning($"Failed to register hotkey: Screenshot ({settings.ScreenshotShortcut})");
+            _log.LogWarning("Global hotkey registration skipped: window handle is not ready");
+            return;
         }
 
-        // 注册取色器快捷键 (ID=2)
-        if (TryParseShortcut(settings.ColorPickerShortcut, out uint mod2, out uint vk2))
+        _hotkeySource = HwndSource.FromHwnd(_hotkeyHwnd);
+        if (_hotkeySource == null)
         {
-            if (Native.NativeMethods.RegisterHotKey(hwnd, HOTKEY_ID_COLORPICKER, mod2, vk2))
-                _log.LogInfo($"Hotkey registered: ColorPicker ({settings.ColorPickerShortcut})");
-            else
-                _log.LogWarning($"Failed to register hotkey: ColorPicker ({settings.ColorPickerShortcut})");
+            _log.LogWarning("Global hotkey registration skipped: HwndSource is not ready");
+            return;
         }
 
-        // 注册窗口置顶快捷键 (ID=3)
-        if (TryParseShortcut(settings.AlwaysOnTopShortcut, out uint mod3, out uint vk3))
+        if (!_hotkeyHookRegistered)
         {
-            if (Native.NativeMethods.RegisterHotKey(hwnd, HOTKEY_ID_ALWAYSONTOP, mod3, vk3))
-                _log.LogInfo($"Hotkey registered: AlwaysOnTop ({settings.AlwaysOnTopShortcut})");
-            else
-                _log.LogWarning($"Failed to register hotkey: AlwaysOnTop ({settings.AlwaysOnTopShortcut})");
+            _hotkeySource.AddHook(WndProc);
+            _hotkeyHookRegistered = true;
         }
 
+        ReloadGlobalHotkeys();
         _log.LogInfo("Global hotkey registration completed");
+    }
+
+    private void ReloadGlobalHotkeys()
+    {
+        if (_hotkeyHwnd == IntPtr.Zero)
+            return;
+
+        UnregisterGlobalHotkeys();
+
+        var settings = _config.LoadConfig<AppSettings>(_config.SettingsFilePath);
+        RegisterConfiguredHotkey(HOTKEY_ID_SCREENSHOT, "Screenshot", settings.ScreenshotShortcut, "Ctrl+Shift+X");
+        RegisterConfiguredHotkey(HOTKEY_ID_COLORPICKER, "ColorPicker", settings.ColorPickerShortcut, "Ctrl+Shift+C");
+        RegisterConfiguredHotkey(HOTKEY_ID_ALWAYSONTOP, "AlwaysOnTop", settings.AlwaysOnTopShortcut, "Ctrl+Shift+T");
+    }
+
+    public void RefreshGlobalHotkeysFromSettings()
+    {
+        ReloadGlobalHotkeys();
+    }
+
+    private void RegisterConfiguredHotkey(int id, string name, string shortcut, string fallbackShortcut)
+    {
+        if (!TryParseShortcut(shortcut, out uint modifiers, out uint vk))
+        {
+            _log.LogWarning($"Failed to parse hotkey: {name} ({shortcut})");
+            shortcut = fallbackShortcut;
+            if (!TryParseShortcut(shortcut, out modifiers, out vk))
+                return;
+        }
+
+        if (!IsSafeGlobalHotkey(modifiers))
+        {
+            _log.LogWarning($"Unsafe global hotkey ignored: {name} ({shortcut}), fallback={fallbackShortcut}");
+            shortcut = fallbackShortcut;
+            if (!TryParseShortcut(shortcut, out modifiers, out vk))
+                return;
+        }
+
+        uint flags = modifiers | MOD_NOREPEAT;
+        if (Native.NativeMethods.RegisterHotKey(_hotkeyHwnd, id, flags, vk))
+        {
+            _log.LogInfo($"Hotkey registered: {name} ({shortcut})");
+            return;
+        }
+
+        int error = Marshal.GetLastWin32Error();
+        _log.LogWarning($"Failed to register hotkey: {name} ({shortcut}), Win32Error={error}");
+    }
+
+    private static bool IsSafeGlobalHotkey(uint modifiers)
+    {
+        return (modifiers & (MOD_CONTROL | MOD_ALT | MOD_WIN)) != 0;
     }
 
     /// <summary>
@@ -432,34 +479,14 @@ public partial class MainWindow : Window
             {
                 case HOTKEY_ID_SCREENSHOT:
                     // 直接启动区域截图，不再只跳转页面
-                    Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        try
-                        {
-                            var shotVm = App.ServiceProvider.GetRequiredService<ScreenshotViewModel>();
-                            shotVm.StartRegionCaptureFromHotkeyCommand.Execute(null);
-                        }
-                        catch (Exception ex)
-                        {
-                            _log.LogError("Hotkey Screenshot failed", ex);
-                        }
-                    }), System.Windows.Threading.DispatcherPriority.Background);
+                    Dispatcher.BeginInvoke(new Action(async () => await HandleScreenshotHotkeyAsync()),
+                        System.Windows.Threading.DispatcherPriority.Background);
                     break;
 
                 case HOTKEY_ID_COLORPICKER:
                     // 直接启动取色，不再只跳转页面
-                    Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        try
-                        {
-                            var pickVm = App.ServiceProvider.GetRequiredService<ColorPickerViewModel>();
-                            pickVm.StartPickingCommand.Execute(null);
-                        }
-                        catch (Exception ex)
-                        {
-                            _log.LogError("Hotkey ColorPicker failed", ex);
-                        }
-                    }), System.Windows.Threading.DispatcherPriority.Background);
+                    Dispatcher.BeginInvoke(new Action(async () => await HandleColorPickerHotkeyAsync()),
+                        System.Windows.Threading.DispatcherPriority.Background);
                     break;
 
                 case HOTKEY_ID_ALWAYSONTOP:
@@ -487,6 +514,78 @@ public partial class MainWindow : Window
         return IntPtr.Zero;
     }
 
+    private async Task HandleScreenshotHotkeyAsync()
+    {
+        if (_isScreenshotHotkeyRunning)
+        {
+            _log.LogInfo("Hotkey Screenshot ignored: capture is already running");
+            return;
+        }
+
+        try
+        {
+            _isScreenshotHotkeyRunning = true;
+            _log.LogInfo("Hotkey Screenshot handling started");
+
+            var shotVm = App.ServiceProvider.GetRequiredService<ScreenshotViewModel>();
+            await shotVm.StartRegionCaptureFromHotkeyCommand.ExecuteAsync(null);
+
+            if (shotVm.HasResult && ContentHost.Content is not ScreenshotView)
+                _nav.Navigate(typeof(ScreenshotView));
+
+            _log.LogInfo("Hotkey Screenshot handling completed");
+        }
+        catch (Exception ex)
+        {
+            _log.LogError("Hotkey Screenshot failed", ex);
+        }
+        finally
+        {
+            _isScreenshotHotkeyRunning = false;
+        }
+    }
+
+    private async Task HandleColorPickerHotkeyAsync()
+    {
+        if (_isColorPickerHotkeyRunning)
+        {
+            _log.LogInfo("Hotkey ColorPicker ignored: picking is already running");
+            return;
+        }
+
+        try
+        {
+            _isColorPickerHotkeyRunning = true;
+            _log.LogInfo("Hotkey ColorPicker handling started");
+
+            var pickVm = App.ServiceProvider.GetRequiredService<ColorPickerViewModel>();
+            await pickVm.StartPickingCommand.ExecuteAsync(null);
+
+            if (pickVm.HasPickedColor && ContentHost.Content is not ColorPickerView)
+                _nav.Navigate(typeof(ColorPickerView));
+
+            _log.LogInfo("Hotkey ColorPicker handling completed");
+        }
+        catch (Exception ex)
+        {
+            _log.LogError("Hotkey ColorPicker failed", ex);
+        }
+        finally
+        {
+            _isColorPickerHotkeyRunning = false;
+        }
+    }
+
+    private void UnregisterGlobalHotkeys()
+    {
+        if (_hotkeyHwnd == IntPtr.Zero)
+            return;
+
+        Native.NativeMethods.UnregisterHotKey(_hotkeyHwnd, HOTKEY_ID_SCREENSHOT);
+        Native.NativeMethods.UnregisterHotKey(_hotkeyHwnd, HOTKEY_ID_COLORPICKER);
+        Native.NativeMethods.UnregisterHotKey(_hotkeyHwnd, HOTKEY_ID_ALWAYSONTOP);
+    }
+
     /// <summary>
     /// 窗口关闭时清理资源
     /// 卸载已注册的全局快捷键
@@ -496,13 +595,13 @@ public partial class MainWindow : Window
         try
         {
             _theme.ThemeChanged -= OnThemeChanged;
+            UnregisterGlobalHotkeys();
 
-            var hwnd = new WindowInteropHelper(this).Handle;
-
-            // 卸载已注册的快捷键
-            Native.NativeMethods.UnregisterHotKey(hwnd, HOTKEY_ID_SCREENSHOT);
-            Native.NativeMethods.UnregisterHotKey(hwnd, HOTKEY_ID_COLORPICKER);
-            Native.NativeMethods.UnregisterHotKey(hwnd, HOTKEY_ID_ALWAYSONTOP);
+            if (_hotkeyHookRegistered && _hotkeySource != null)
+            {
+                _hotkeySource.RemoveHook(WndProc);
+                _hotkeyHookRegistered = false;
+            }
 
             _log.LogInfo("All hotkeys unregistered, window closing");
         }

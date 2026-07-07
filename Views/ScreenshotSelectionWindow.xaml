@@ -15,7 +15,21 @@
         Cursor="Cross"
         KeyDown="OnKeyDown"
         Loaded="OnLoaded">
-    <Grid>
-        <Canvas x:Name="OverlayCanvas"/>
+    <Grid Background="#33000000">
+        <Canvas x:Name="OverlayCanvas" Background="Transparent"/>
+        <Border HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,36,0,0"
+                Padding="16,10"
+                Background="#DD111827"
+                BorderBrush="#6600AEEF"
+                BorderThickness="1"
+                CornerRadius="8"
+                IsHitTestVisible="False">
+            <TextBlock Text="拖拽选择截图区域，松开鼠标完成；右键或 Esc 取消"
+                       Foreground="#F8FAFC"
+                       FontSize="15"
+                       FontWeight="SemiBold"/>
+        </Border>
     </Grid>
 </Window>

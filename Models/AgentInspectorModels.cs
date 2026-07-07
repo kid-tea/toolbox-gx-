@@ -26,7 +26,14 @@ public enum AgentDataProvenance
     LocalSkills,
     LocalTokenCache,
     LocalEstimate,
+    RemoteUsageApi,
     Unsupported
+}
+
+public enum AgentTokenSourceKind
+{
+    Local,
+    Api
 }
 
 public sealed class AgentScanOptions
@@ -37,6 +44,10 @@ public sealed class AgentScanOptions
     public bool IncludeTokenUsage { get; init; } = true;
     public bool IncludeProjectRules { get; init; } = true;
     public string ProjectRoot { get; init; } = @"D:\codex\探索使用1";
+    public AgentTokenSourceKind TokenSource { get; init; } = AgentTokenSourceKind.Local;
+    public string ApiProvider { get; init; } = "OpenAI";
+    public string ApiKey { get; init; } = "";
+    public string ApiModel { get; init; } = "";
     public string UserProfilePath { get; init; } =
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
     public string AppDataRoamingPath { get; init; } =
@@ -125,12 +136,44 @@ public sealed class AgentTokenUsageRecord
     public long Tokens { get; set; }
     public long InputTokens { get; set; }
     public long CachedInputTokens { get; set; }
+    public long CacheWriteInputTokens { get; set; }
+    public long OutputTokens { get; set; }
+    public long ReasoningOutputTokens { get; set; }
     public int MessageCount { get; set; }
     public int SessionCount { get; set; }
     public int ToolCallCount { get; set; }
+    public string ConversationId { get; set; } = "";
+    public string ConversationTitle { get; set; } = "";
     public string ProjectPath { get; set; } = "";
     public AgentDataProvenance Provenance { get; set; } = AgentDataProvenance.LocalTokenCache;
     public decimal? EstimatedCostUsd { get; set; }
+}
+
+public sealed class AgentTokenUsageApiOptions
+{
+    public string Provider { get; init; } = "OpenAI";
+    public string ApiKey { get; init; } = "";
+    public string Model { get; init; } = "";
+    public DateTimeOffset Start { get; init; }
+    public DateTimeOffset End { get; init; }
+    public AgentToolKind Agent { get; init; } = AgentToolKind.Codex;
+}
+
+public sealed class AgentTokenConversationSummary
+{
+    public AgentToolKind Agent { get; set; }
+    public string Model { get; set; } = "unknown";
+    public DateTimeOffset Date { get; set; }
+    public string ConversationId { get; set; } = "";
+    public string ConversationTitle { get; set; } = "";
+    public long Tokens { get; set; }
+    public long InputTokens { get; set; }
+    public long CachedInputTokens { get; set; }
+    public long OutputTokens { get; set; }
+    public int RequestCount { get; set; }
+    public string TokensText { get; set; } = "0";
+    public string RequestCountText { get; set; } = "0";
+    public Collection<AgentTokenUsageRecord> Requests { get; } = new();
 }
 
 public sealed class AgentTokenModelSummary

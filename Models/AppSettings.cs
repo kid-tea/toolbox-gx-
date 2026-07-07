@@ -112,6 +112,16 @@ public class AppSettings
     /// <summary>调试模式，开启后可访问待优化功能（截屏、磁盘空间分析、任务、AI Agent 检验）</summary>
     public bool DebugMode { get; set; }
 
+    // ==================== AI Agent Token 数据源 ====================
+
+    public string AgentTokenDataSource { get; set; } = "Local";
+
+    public string AgentTokenApiProvider { get; set; } = "OpenAI";
+
+    public string AgentTokenApiModel { get; set; } = "gpt-5.5";
+
+    public string AgentTokenApiKey { get; set; } = "";
+
     // ==================== 配置文件完整性 ====================
 
     /// <summary>配置文件 SHA256 哈希值，用于完整性校验</summary>

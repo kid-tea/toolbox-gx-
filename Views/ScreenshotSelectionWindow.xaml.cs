@@ -44,6 +44,8 @@ public partial class ScreenshotSelectionWindow : Window
         Top = SystemParameters.VirtualScreenTop;
         Width = SystemParameters.VirtualScreenWidth;
         Height = SystemParameters.VirtualScreenHeight;
+        Activate();
+        Focus();
     }
 
     /// <summary>
@@ -130,11 +132,9 @@ public partial class ScreenshotSelectionWindow : Window
 
         if (_selectionRect != null && _selectionRect.Width > 10 && _selectionRect.Height > 10)
         {
-            SelectedRegion = new Rect(
-                _selectionRect.Margin.Left,
-                _selectionRect.Margin.Top,
-                _selectionRect.Width,
-                _selectionRect.Height);
+            SelectedRegion = BuildSelectedRegion();
+            DialogResult = true;
+            Close();
         }
     }
 
@@ -145,11 +145,7 @@ public partial class ScreenshotSelectionWindow : Window
     {
         if (_selectionRect != null && _selectionRect.Width > 5 && _selectionRect.Height > 5)
         {
-            SelectedRegion = new Rect(
-                _selectionRect.Margin.Left,
-                _selectionRect.Margin.Top,
-                _selectionRect.Width,
-                _selectionRect.Height);
+            SelectedRegion = BuildSelectedRegion();
             DialogResult = true;
         }
         Close();
@@ -163,5 +159,25 @@ public partial class ScreenshotSelectionWindow : Window
         SelectedRegion = Rect.Empty;
         DialogResult = false;
         Close();
+    }
+
+    private Rect BuildSelectedRegion()
+    {
+        if (_selectionRect == null)
+            return Rect.Empty;
+
+        var topLeft = PointToScreen(new Point(
+            _selectionRect.Margin.Left,
+            _selectionRect.Margin.Top));
+        var bottomRight = PointToScreen(new Point(
+            _selectionRect.Margin.Left + _selectionRect.Width,
+            _selectionRect.Margin.Top + _selectionRect.Height));
+
+        double left = Math.Floor(Math.Min(topLeft.X, bottomRight.X));
+        double top = Math.Floor(Math.Min(topLeft.Y, bottomRight.Y));
+        double right = Math.Ceiling(Math.Max(topLeft.X, bottomRight.X));
+        double bottom = Math.Ceiling(Math.Max(topLeft.Y, bottomRight.Y));
+
+        return new Rect(left, top, right - left, bottom - top);
     }
 }

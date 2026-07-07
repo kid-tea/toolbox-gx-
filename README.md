@@ -11,7 +11,7 @@ WPF + .NET 8 构建的 Windows 多功能系统工具箱。
 
 正式发布文件请在 GitHub Releases 中下载：
 
-- [Toolbox.exe](https://github.com/kid-tea/toolbox-gx-/releases/download/v1.0.5/Toolbox.exe)
+- [Toolbox.exe](https://github.com/kid-tea/toolbox-gx-/releases/download/v2.0.0/Toolbox.exe)
 
 ## 功能模块
 
@@ -35,6 +35,38 @@ WPF + .NET 8 构建的 Windows 多功能系统工具箱。
 | 调试功能 | 截屏、任务 | 待优化功能，默认放入调试专区 |
 
 ## 更新历史
+
+### v2.0.0
+
+发布日期：2026-07-07
+
+#### AI Agent Token 统计
+
+- 新增 AI Agent Token 消耗看板，支持按今日、本周、本月查看软件与模型消耗。
+- 支持 Codex 本地 rollout 明细解析，按单条对话汇总 Token，并可展开查看每次模型请求的 Input / Cache / Output / Reasoning。
+- 支持归档会话读取：只要 `archived_sessions` 中的 rollout 文件仍存在，就会纳入统计。
+- 修复 Codex 旧线程 `tokens_used` 为空时被漏扫的问题，改为优先读取 `rollout_path` 明细。
+- 修复历史快照回放误判，避免真实长会话被当成异常数据跳过。
+- 新增 Token API 数据源基础能力，支持在设置中配置 API Key，并为后续多 API / 中转商用量查询保留扩展。
+- 对话 Token 明细页改为独立页面，默认折叠每条对话，右侧展示对话总 Token 与模型请求次数。
+- 汇总区调用次数改为显示实际模型请求次数，不再在已有明细时显示“暂无精确数据”。
+
+#### 任务与调试功能
+
+- 新增/完善任务管理相关模型、服务与界面，支持本地任务数据的创建、状态管理与 UI 展示。
+- 优化调试功能区入口，将未稳定功能集中管理，降低对正式工具导航的干扰。
+
+#### 设置、主题与界面
+
+- 增加多套主题资源，完善主题持久化和设置页配置项。
+- 优化截图、重复文件、任务页、AI Agent Inspector 等页面的排版、对齐和异常处理。
+- 修复 Token 明细弹窗/页面中 WPF 资源类型误用导致的样式错误。
+
+#### 构建与发布
+
+- 版本号升级为 `2.0.0`。
+- 发布产物改为单文件自包含 `publish/Toolbox.exe`，SQLite 原生库已整合进可执行文件。
+- 保留既有 1.0.x 更新历史，2.0.0 作为 AI Agent 与任务功能大版本更新。
 
 ### v1.0.5
 

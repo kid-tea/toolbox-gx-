@@ -1,331 +1,883 @@
-<!--
-    TasksView.xaml — 任务管理功能页面
-    布局：创建任务面板 → 任务列表 → 排序/清除按钮
-    任务项：☐勾选 + 🔴重要标记 + 内容 + 时间 + 已完成变灰沉底 + 已暂停虚线
-    所有颜色使用 {StaticResource ...} 引用主题
--->
 <UserControl x:Class="Toolbox.Views.TasksView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:Toolbox.ViewModels"
              xmlns:models="clr-namespace:Toolbox.Models"
-             Background="{StaticResource ContentBrush}">
-    <Grid Margin="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>   <!-- 创建任务面板 -->
-            <RowDefinition Height="Auto"/>   <!-- 状态 + 排序/悬浮面板 -->
-            <RowDefinition Height="*"/>      <!-- 任务列表 -->
-        </Grid.RowDefinitions>
+             Background="{DynamicResource ContentBrush}"
+             FontFamily="Segoe UI">
+    <UserControl.Resources>
+        <Style x:Key="TaskPanel" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="18"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
 
-        <!-- ========== 第1行：创建任务面板 ========== -->
-        <Border Grid.Row="0" Background="{StaticResource CardBrush}"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                CornerRadius="{StaticResource DefaultCornerRadius}" Padding="12" Margin="0,0,0,8">
-            <StackPanel>
-                <!-- 表单标题 -->
-                <TextBlock Text="创建任务" FontSize="18" FontWeight="Bold"
-                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+        <Style x:Key="TaskInput" TargetType="TextBox">
+            <Setter Property="MinHeight" Value="38"/>
+            <Setter Property="Padding" Value="11,7"/>
+            <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
-                <!-- 内容输入 -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                    <TextBlock Text="内容:" VerticalAlignment="Center" Width="50"
-                               Foreground="{StaticResource TextSecondaryBrush}" FontSize="13"/>
-                    <TextBox Text="{Binding NewTaskContent, UpdateSourceTrigger=PropertyChanged}"
-                             Width="300" Height="28"
-                             Background="{StaticResource InputBackgroundBrush}"
-                             Foreground="{StaticResource TextPrimaryBrush}"
-                             BorderBrush="{StaticResource BorderBrush}"
-                             FontSize="13"/>
-                </StackPanel>
+        <Style x:Key="TaskComboItem" TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="ItemBorder"
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource SidebarHoverBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource AccentLightBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
-                <!-- 时间 + 重复 -->
-                <Grid Margin="0,0,0,12">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="70"/>
-                        <ColumnDefinition Width="180"/>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="120"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
+        <Style x:Key="TaskCombo" TargetType="ComboBox">
+            <Setter Property="MinHeight" Value="38"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="ItemContainerStyle" Value="{StaticResource TaskComboItem}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid SnapsToDevicePixels="True">
+                            <ToggleButton x:Name="ToggleButton"
+                                          Background="Transparent"
+                                          BorderThickness="0"
+                                          ClickMode="Press"
+                                          Focusable="False"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <ContentPresenter/>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                                <Border x:Name="ComboBorder"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="10"
+                                        Padding="{TemplateBinding Padding}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="20"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{TemplateBinding SelectionBoxItem}"
+                                                   Foreground="{TemplateBinding Foreground}"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <Path Grid.Column="1"
+                                              Data="M 0 0 L 4 4 L 8 0 Z"
+                                              Fill="{DynamicResource TextSecondaryBrush}"
+                                              Width="8"
+                                              Height="4"
+                                              Stretch="Fill"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                            </ToggleButton>
 
-                    <TextBlock Grid.Column="0" Text="时间:" VerticalAlignment="Center"
-                               Foreground="{StaticResource TextSecondaryBrush}" FontSize="13"/>
+                            <Popup x:Name="PART_Popup"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Bottom"
+                                   PopupAnimation="Fade">
+                                <Border Background="{DynamicResource InputBackgroundBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="10"
+                                        Width="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <ScrollViewer CanContentScroll="True">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger SourceName="ToggleButton" Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ComboBorder" Property="Background" Value="{DynamicResource SidebarHoverBrush}"/>
+                                <Setter TargetName="ComboBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="ComboBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ComboBorder" Property="Opacity" Value="0.55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <DatePicker SelectedDate="{Binding NewTaskDate}" Width="126" Height="30" Margin="0,0,8,0"/>
-                        <TextBox x:Name="HourTextBox" Width="46" Height="30" MaxLength="2"
-                                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
-                                 Background="{StaticResource InputBackgroundBrush}"
-                                 Foreground="{StaticResource TextPrimaryBrush}"
-                                 BorderBrush="{StaticResource BorderBrush}"
-                                 FontSize="13" Text="{Binding NewTaskHour, UpdateSourceTrigger=PropertyChanged}"/>
-                        <TextBlock Text=":" Margin="6,0" VerticalAlignment="Center" FontSize="16" Foreground="{StaticResource TextPrimaryBrush}"/>
-                        <TextBox x:Name="MinuteTextBox" Width="46" Height="30" MaxLength="2"
-                                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
-                                 Background="{StaticResource InputBackgroundBrush}"
-                                 Foreground="{StaticResource TextPrimaryBrush}"
-                                 BorderBrush="{StaticResource BorderBrush}"
-                                 FontSize="13" Text="{Binding NewTaskMinute, UpdateSourceTrigger=PropertyChanged}"/>
-                        <TextBlock Text=":" Margin="6,0" VerticalAlignment="Center" FontSize="16" Foreground="{StaticResource TextPrimaryBrush}"/>
-                        <TextBox x:Name="SecondTextBox" Width="46" Height="30" MaxLength="2"
-                                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
-                                 Background="{StaticResource InputBackgroundBrush}"
-                                 Foreground="{StaticResource TextPrimaryBrush}"
-                                 BorderBrush="{StaticResource BorderBrush}"
-                                 FontSize="13" Text="{Binding NewTaskSecond, UpdateSourceTrigger=PropertyChanged}"/>
-                    </StackPanel>
+        <Style x:Key="TaskDatePickerTextBox" TargetType="DatePickerTextBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DatePickerTextBox">
+                        <Border Background="Transparent" Padding="0">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="10,0,4,0"
+                                          VerticalAlignment="Center"
+                                          Focusable="False"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
-                    <TextBlock Grid.Column="2" Text="重复:" VerticalAlignment="Center" Margin="12,0,4,0"
-                               Foreground="{StaticResource TextSecondaryBrush}" FontSize="13"/>
-                    <ComboBox Grid.Column="3" SelectedValue="{Binding NewTaskRepeatMode}" SelectedValuePath="Tag"
-                              Width="110" Height="30"
-                              Background="{StaticResource InputBackgroundBrush}"
-                              Foreground="{StaticResource TextPrimaryBrush}"
-                              BorderBrush="{StaticResource BorderBrush}">
-                        <ComboBoxItem Content="一次" Tag="{x:Static models:TaskRepeatMode.Once}"/>
-                        <ComboBoxItem Content="每天" Tag="{x:Static models:TaskRepeatMode.Daily}"/>
-                        <ComboBoxItem Content="每周" Tag="{x:Static models:TaskRepeatMode.Weekly}"/>
-                        <ComboBoxItem Content="自定义" Tag="{x:Static models:TaskRepeatMode.Custom}"/>
-                    </ComboBox>
-                </Grid>
-
-                <!-- 每周重复选择（仅每周模式可见） -->
-                <StackPanel Orientation="Horizontal" Margin="50,0,0,8"
-                            Visibility="Collapsed">
-                    <CheckBox Content="一" IsChecked="{Binding WeeklyMon}" Margin="0,0,6,0"
-                              Foreground="{StaticResource TextPrimaryBrush}" FontSize="11"/>
-                    <CheckBox Content="二" IsChecked="{Binding WeeklyTue}" Margin="0,0,6,0"
-                              Foreground="{StaticResource TextPrimaryBrush}" FontSize="11"/>
-                    <CheckBox Content="三" IsChecked="{Binding WeeklyWed}" Margin="0,0,6,0"
-                              Foreground="{StaticResource TextPrimaryBrush}" FontSize="11"/>
-                    <CheckBox Content="四" IsChecked="{Binding WeeklyThu}" Margin="0,0,6,0"
-                              Foreground="{StaticResource TextPrimaryBrush}" FontSize="11"/>
-                    <CheckBox Content="五" IsChecked="{Binding WeeklyFri}" Margin="0,0,6,0"
-                              Foreground="{StaticResource TextPrimaryBrush}" FontSize="11"/>
-                    <CheckBox Content="六" IsChecked="{Binding WeeklySat}" Margin="0,0,6,0"
-                              Foreground="{StaticResource TextPrimaryBrush}" FontSize="11"/>
-                    <CheckBox Content="日" IsChecked="{Binding WeeklySun}"
-                              Foreground="{StaticResource TextPrimaryBrush}" FontSize="11"/>
-                </StackPanel>
-
-                <!-- 自定义间隔 + 重要性 + 提示音 -->
-                <Grid Margin="0,0,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="90"/>
-                        <ColumnDefinition Width="120"/>
-                        <ColumnDefinition Width="80"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="70"/>
-                        <ColumnDefinition Width="120"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <TextBlock Grid.Column="0" Text="自定义间隔:" VerticalAlignment="Center"
-                               Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <TextBox Text="{Binding NewTaskCustomInterval, UpdateSourceTrigger=PropertyChanged}"
-                                 Width="54" Height="28"
-                                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
-                                 Background="{StaticResource InputBackgroundBrush}"
-                                 Foreground="{StaticResource TextPrimaryBrush}"
-                                 BorderBrush="{StaticResource BorderBrush}"
-                                 FontSize="12"/>
-                        <ComboBox SelectedValue="{Binding NewTaskCustomIntervalUnit}" SelectedValuePath="Content"
-                                  Width="58" Height="28" Margin="6,0,0,0"
-                                  Background="{StaticResource InputBackgroundBrush}"
-                                  Foreground="{StaticResource TextPrimaryBrush}"
-                                  BorderBrush="{StaticResource BorderBrush}">
-                            <ComboBoxItem Content="天"/>
-                            <ComboBoxItem Content="小时"/>
-                        </ComboBox>
-                    </StackPanel>
-
-                    <TextBlock Grid.Column="2" Text="重要性:" VerticalAlignment="Center" Margin="8,0,4,0"
-                               Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
-                    <ComboBox Grid.Column="3" SelectedValue="{Binding NewTaskImportance}" SelectedValuePath="Tag"
-                              Width="100" Height="28"
-                              Background="{StaticResource InputBackgroundBrush}"
-                              Foreground="{StaticResource TextPrimaryBrush}"
-                              BorderBrush="{StaticResource BorderBrush}">
-                        <ComboBoxItem Content="普通" Tag="{x:Static models:TaskImportance.Normal}"/>
-                        <ComboBoxItem Content="重要" Tag="{x:Static models:TaskImportance.Important}"/>
-                    </ComboBox>
-
-                    <TextBlock Grid.Column="4" Text="提示音:" VerticalAlignment="Center" Margin="8,0,4,0"
-                               Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
-                    <ComboBox Grid.Column="5" SelectedValue="{Binding NewTaskAlertSound}" SelectedValuePath="Tag"
-                              Width="110" Height="28"
-                              Background="{StaticResource InputBackgroundBrush}"
-                              Foreground="{StaticResource TextPrimaryBrush}"
-                              BorderBrush="{StaticResource BorderBrush}">
-                        <ComboBoxItem Content="系统默认" Tag="SystemDefault"/>
-                        <ComboBoxItem Content="静音" Tag="Silent"/>
-                        <ComboBoxItem Content="自定义WAV" Tag="CustomWav"/>
-                    </ComboBox>
-                </Grid>
-
-                <!-- 自定义间隔错误提示 -->
-                <TextBlock Text="{Binding CustomIntervalError}"
-                           Foreground="{StaticResource DangerBrush}" FontSize="11"
-                           Margin="70,4,0,0"
-                           Visibility="{Binding IsCustomIntervalValid, Converter={StaticResource InvertBoolToVisibilityConverter}}"/>
-
-                <!-- 添加按钮 -->
-                <Button Content="+ 添加任务" Command="{Binding AddTaskCommand}"
-                        Margin="0,10,0,0" Padding="16,6"
-                        Background="{StaticResource AccentBrush}" Foreground="White"
-                        BorderThickness="0" Cursor="Hand" FontWeight="Bold">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="4"/>
-                        </Style>
-                    </Button.Resources>
-                </Button>
-            </StackPanel>
-        </Border>
-
-        <!-- ========== 第2行：状态栏 + 工具栏 ========== -->
-        <Grid Grid.Row="1" Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-
-            <TextBlock Text="{Binding StatusMessage}"
-                       Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"
-                       VerticalAlignment="Center"/>
-
-            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <TextBlock Text="{Binding SortByImportance, StringFormat=当前排序：{0}}"
-                           Foreground="{StaticResource TextMutedBrush}" FontSize="12"
-                           VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <Button Content="切换排序方式"
-                        Command="{Binding ToggleSortCommand}"
-                        Margin="0,0,8,0" Padding="8,4" FontSize="11"
-                        Background="{StaticResource InputBackgroundBrush}"
-                        Foreground="{StaticResource TextPrimaryBrush}"
-                        BorderBrush="{StaticResource BorderBrush}" Cursor="Hand"/>
-                <Button Content="悬浮面板" Command="{Binding ToggleFloatingPanelCommand}"
-                        Margin="0,0,8,0" Padding="8,4" FontSize="11"
-                        Background="{StaticResource InputBackgroundBrush}"
-                        Foreground="{StaticResource TextPrimaryBrush}"
-                        BorderBrush="{StaticResource BorderBrush}" Cursor="Hand"/>
-                <Button Content="清除已完成" Command="{Binding ClearCompletedTasksCommand}"
-                        Padding="8,4" FontSize="11"
-                        Background="{StaticResource DangerBrush}" Foreground="White"
-                        BorderThickness="0" Cursor="Hand">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="4"/>
-                        </Style>
-                    </Button.Resources>
-                </Button>
-            </StackPanel>
-        </Grid>
-
-        <!-- ========== 第3行：任务列表 ========== -->
-        <Border Grid.Row="2" Background="{StaticResource CardBrush}"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                CornerRadius="{StaticResource DefaultCornerRadius}" Padding="8">
-            <Grid>
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <ItemsControl ItemsSource="{Binding Tasks}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Margin="0,0,0,4" Padding="6"
-                                    CornerRadius="4">
-                                <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsCompleted}" Value="True">
-                                                <Setter Property="Opacity" Value="0.5"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Border.Style>
+        <Style x:Key="TaskDatePicker" TargetType="DatePicker">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="MinWidth" Value="148"/>
+            <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DatePicker">
+                        <Grid>
+                            <Border x:Name="PickerBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="10">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="34"/>
+                                    </Grid.ColumnDefinitions>
+                                    <DatePickerTextBox x:Name="PART_TextBox"
+                                                       Grid.Column="0"
+                                                       Style="{StaticResource TaskDatePickerTextBox}"
+                                                       Background="Transparent"
+                                                       Foreground="{TemplateBinding Foreground}"
+                                                       BorderThickness="0"
+                                                       VerticalContentAlignment="Center"/>
+                                    <Button x:Name="PART_Button"
+                                            Grid.Column="1"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Cursor="Hand"
+                                            Focusable="False">
+                                        <TextBlock Text="&#xE787;"
+                                                   FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="14"
+                                                   Foreground="{DynamicResource AccentBrush}"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"/>
+                                    </Button>
+                                </Grid>
+                            </Border>
+                            <Popup x:Name="PART_Popup"
+                                   AllowsTransparency="True"
+                                   Placement="Bottom"
+                                   PlacementTarget="{Binding ElementName=PickerBorder}"
+                                   StaysOpen="False">
+                                <Border Background="{DynamicResource CardBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        Padding="8">
+                                    <Calendar x:Name="PART_Calendar"
+                                              SelectedDate="{Binding SelectedDate, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                              DisplayDate="{Binding DisplayDate, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                              DisplayDateStart="{Binding DisplayDateStart, RelativeSource={RelativeSource TemplatedParent}}"
+                                              DisplayDateEnd="{Binding DisplayDateEnd, RelativeSource={RelativeSource TemplatedParent}}"/>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="PickerBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="PickerBorder" Property="Opacity" Value="0.55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TaskTimeCombo" TargetType="ComboBox" BasedOn="{StaticResource TaskCombo}">
+            <Setter Property="Width" Value="66"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="MaxDropDownHeight" Value="220"/>
+            <Setter Property="IsEditable" Value="True"/>
+            <Setter Property="IsTextSearchEnabled" Value="True"/>
+            <Setter Property="StaysOpenOnEdit" Value="True"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid SnapsToDevicePixels="True" ClipToBounds="False">
+                            <Border x:Name="ComboBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="0"
+                                    CornerRadius="10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="22"/>
+                                    </Grid.ColumnDefinitions>
+
+                                            <TextBox x:Name="PART_EditableTextBox"
+                                             Grid.Column="0"
+                                             Background="Transparent"
+                                             BorderThickness="0"
+                                             Foreground="{TemplateBinding Foreground}"
+                                             FontSize="{TemplateBinding FontSize}"
+                                             Padding="9,0,0,0"
+                                             Margin="1,1,0,1"
+                                             VerticalContentAlignment="Center"
+                                             HorizontalContentAlignment="Center"
+                                             IsReadOnly="{Binding IsReadOnly, RelativeSource={RelativeSource TemplatedParent}}"/>
+
+                                    <ToggleButton Grid.Column="1"
+                                                  Margin="0,1,1,1"
+                                                  IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                                  Focusable="False"
+                                                  ClickMode="Press">
+                                        <ToggleButton.Template>
+                                            <ControlTemplate TargetType="ToggleButton">
+                                                <Border Background="Transparent" CornerRadius="0,10,10,0">
+                                                    <TextBlock Text="&#xE70D;"
+                                                               FontFamily="Segoe MDL2 Assets"
+                                                               FontSize="9"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </ToggleButton.Template>
+                                    </ToggleButton>
+                                </Grid>
+                            </Border>
+
+                            <Border x:Name="ComboBorderLine"
+                                    Background="Transparent"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="10"
+                                    Margin="0,0,2,0"
+                                    IsHitTestVisible="False"/>
+
+                            <Border x:Name="ComboRightEdgeLine"
+                                    Width="1.4"
+                                    HorizontalAlignment="Right"
+                                    Margin="0,7,2,7"
+                                    Background="{TemplateBinding BorderBrush}"
+                                    RenderOptions.EdgeMode="Aliased"
+                                    IsHitTestVisible="False"/>
+
+                            <Popup x:Name="PART_Popup"
+                                   Placement="Bottom"
+                                   IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Fade">
+                                <Border Background="{DynamicResource CardBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="10"
+                                        MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <ScrollViewer Margin="0,4"
+                                                  VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Disabled">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="ComboBorderLine" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                <Setter TargetName="ComboRightEdgeLine" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ComboBorderLine" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                <Setter TargetName="ComboRightEdgeLine" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ComboBorder" Property="Opacity" Value="0.55"/>
+                                <Setter TargetName="ComboBorderLine" Property="Opacity" Value="0.55"/>
+                                <Setter TargetName="ComboRightEdgeLine" Property="Opacity" Value="0.55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TaskButton" TargetType="Button">
+            <Setter Property="MinHeight" Value="34"/>
+            <Setter Property="Padding" Value="13,7"/>
+            <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource SidebarHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.82"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.48"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TaskPrimaryButton" TargetType="Button" BasedOn="{StaticResource TaskButton}">
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style x:Key="TaskDangerButton" TargetType="Button" BasedOn="{StaticResource TaskButton}">
+            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+        </Style>
+
+        <Style x:Key="TaskLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,12,0,5"/>
+        </Style>
+
+        <Style x:Key="TaskTinyLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,5"/>
+        </Style>
+
+        <Style x:Key="TaskBadge" TargetType="Border">
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
+        </Style>
+
+        <Style x:Key="TaskListBoxItemStyle" TargetType="ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Row"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="14"
+                                BorderBrush="Transparent"
+                                BorderThickness="1">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource SidebarHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource AccentLightBrush}"/>
+                                <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="16" UseLayoutRounding="True">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource TaskPanel}" Padding="20" Margin="0,0,0,12">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="44" Height="44" CornerRadius="14" Background="{DynamicResource AccentLightBrush}" Margin="0,0,13,0">
+                        <TextBlock Text="&#xE728;" FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel>
+                        <TextBlock Text="任务中心" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock Text="本地离线保存，切换页面不会丢失状态" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Style="{StaticResource TaskBadge}">
+                        <TextBlock Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"><Run Text="未完成 "/><Run Text="{Binding OpenCount}" FontWeight="SemiBold"/></TextBlock>
+                    </Border>
+                    <Border Style="{StaticResource TaskBadge}">
+                        <TextBlock Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"><Run Text="今天 "/><Run Text="{Binding TodayCount}" FontWeight="SemiBold"/></TextBlock>
+                    </Border>
+                    <Border Style="{StaticResource TaskBadge}" Margin="0">
+                        <TextBlock Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"><Run Text="逾期 "/><Run Text="{Binding OverdueCount}" FontWeight="SemiBold"/></TextBlock>
+                    </Border>
+                </StackPanel>
+
+                <Grid Grid.Row="1" Grid.ColumnSpan="2" Margin="0,18,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="166"/>
+                        <ColumnDefinition Width="70"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="快速添加任务" Style="{StaticResource TaskTinyLabel}"/>
+                        <TextBox Style="{StaticResource TaskInput}" Text="{Binding QuickTitle, UpdateSourceTrigger=PropertyChanged}" ToolTip="输入任务标题"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                        <TextBlock Text="到期日" Style="{StaticResource TaskTinyLabel}"/>
+                        <DatePicker SelectedDate="{Binding QuickDueDate}" Style="{StaticResource TaskDatePicker}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Margin="8,0,0,0">
+                        <TextBlock Text="提醒时间" Style="{StaticResource TaskTinyLabel}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="72"/>
+                                <ColumnDefinition Width="18"/>
+                                <ColumnDefinition Width="72"/>
+                            </Grid.ColumnDefinitions>
+                            <ComboBox Style="{StaticResource TaskTimeCombo}"
+                                      ItemsSource="{Binding HourOptions}"
+                                      Text="{Binding QuickHourText, UpdateSourceTrigger=PropertyChanged}"
+                                      ToolTip="小时：0-23，可手动输入"/>
+                            <TextBlock Grid.Column="1" Text=":" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="2"
+                                      Style="{StaticResource TaskTimeCombo}"
+                                      ItemsSource="{Binding MinuteOptions}"
+                                      Text="{Binding QuickMinuteText, UpdateSourceTrigger=PropertyChanged}"
+                                      ToolTip="分钟：0-59，可手动输入"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="3" Margin="10,0,0,0" VerticalAlignment="Bottom">
+                        <CheckBox Content="重要" IsChecked="{Binding QuickImportant}" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Bottom">
+                        <Button Content="今天" Command="{Binding SetQuickDueTodayCommand}" Style="{StaticResource TaskButton}"/>
+                        <Button Content="明天" Command="{Binding SetQuickDueTomorrowCommand}" Style="{StaticResource TaskButton}" Margin="6,0,0,0"/>
+                        <Button Command="{Binding AddQuickTaskCommand}" Style="{StaticResource TaskPrimaryButton}" Margin="10,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="13" Margin="0,0,6,0"/>
+                                <TextBlock Text="添加任务"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding QuickInputError}" Foreground="{DynamicResource DangerBrush}" FontSize="12" Margin="0,8,0,0" Visibility="{Binding QuickInputError, Converter={StaticResource StringToVisConverter}}"/>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260" MinWidth="220"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="*" MinWidth="320"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="280" MinWidth="240"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource TaskPanel}" Padding="14">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <DockPanel Margin="4,0,4,12">
+                        <TextBlock DockPanel.Dock="Left" Text="视图与清单" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding TotalCount}" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="SemiBold"/>
+                    </DockPanel>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Filters}" SelectedItem="{Binding SelectedFilter, Mode=TwoWay}" BorderThickness="0" Background="Transparent" ItemContainerStyle="{StaticResource TaskListBoxItemStyle}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="9,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="40"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-
-                                    <!-- 勾选框 -->
-                                    <CheckBox Grid.Column="0" VerticalAlignment="Center"
-                                              IsChecked="{Binding IsCompleted, Mode=OneWay}"
-                                              Margin="0,0,8,0"
-                                              Click="OnToggleTaskCompleteClick"/>
-
-                                    <!-- 任务信息 -->
-                                    <StackPanel Grid.Column="1">
-                                        <StackPanel Orientation="Horizontal">
-                                            <!-- 重要标记 -->
-                                            <Border Background="{StaticResource DangerBrush}"
-                                                    CornerRadius="2" Padding="2,0"
-                                                    Visibility="{Binding Importance, Converter={StaticResource ImportanceToVisibilityConverter}}"
-                                                    Margin="0,0,4,0">
-                                                <TextBlock Text="IMPORTANT" Foreground="White" FontSize="8"/>
-                                            </Border>
-
-                                            <!-- 内容（已完成划线，已暂停虚线） -->
-                                            <TextBlock Text="{Binding Content}"
-                                                       FontSize="13" VerticalAlignment="Center">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsCompleted}" Value="True">
-                                                                <Setter Property="Foreground" Value="{StaticResource CompletedBrush}"/>
-                                                                <Setter Property="TextDecorations" Value="Strikethrough"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding IsPaused}" Value="True">
-                                                                <Setter Property="TextDecorations" Value="Underline"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                        </StackPanel>
-
-                                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                            <TextBlock Text="{Binding NextTriggerTime, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
-                                                       Foreground="{StaticResource TextMutedBrush}" FontSize="11"/>
-                                            <TextBlock Text="{Binding RepeatMode, StringFormat=' | 重复: {0}'}"
-                                                       Foreground="{StaticResource TextMutedBrush}" FontSize="11"
-                                                       Margin="4,0,0,0"/>
-                                        </StackPanel>
+                                    <Border Width="32" Height="32" CornerRadius="11" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                                        <TextBlock Text="{Binding Icon}" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Group}" Foreground="{DynamicResource TextMutedBrush}" FontSize="11" Margin="0,2,0,0"/>
                                     </StackPanel>
+                                    <Border Grid.Column="2" Background="{DynamicResource InputBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="11" Padding="8,3" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Count}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" FontWeight="SemiBold"/>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
 
-                                    <!-- 操作按钮 -->
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Button Content="⏸"
-                                                Tag="{Binding}"
-                                                Click="OnPauseTaskClick"
-                                                Padding="6,2" FontSize="11"
-                                                Background="Transparent"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
-                                                BorderThickness="0" Cursor="Hand"/>
-                                        <Button Content="✕"
-                                                Tag="{Binding}"
-                                                Click="OnDeleteTaskClick"
-                                                Padding="6,2" FontSize="11"
-                                                Background="Transparent"
-                                                Foreground="{StaticResource DangerBrush}"
-                                                BorderThickness="0" Cursor="Hand"/>
+            <Border Grid.Column="2" Style="{StaticResource TaskPanel}" Padding="16">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="174"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Style="{StaticResource TaskInput}" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="搜索标题、备注、标签、步骤"/>
+                        <ComboBox Grid.Column="1" Style="{StaticResource TaskCombo}" Margin="10,0,0,0" ItemsSource="{Binding SortOptions}" SelectedItem="{Binding SelectedSortOption}" DisplayMemberPath="Name"/>
+                    </Grid>
+
+                    <DockPanel Grid.Row="1" Margin="0,12,0,10">
+                        <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <Button Content="撤销删除" Command="{Binding UndoDeleteCommand}" Style="{StaticResource TaskButton}" Visibility="{Binding CanUndoDelete, Converter={StaticResource BoolToVisibilityConverter}}" Margin="0,0,8,0"/>
+                            <Button Content="清空搜索" Command="{Binding ClearSearchCommand}" Style="{StaticResource TaskButton}" Margin="0,0,8,0"/>
+                            <Button Content="清除已完成" Command="{Binding ClearCompletedTasksCommand}" Style="{StaticResource TaskDangerButton}"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <Grid Grid.Row="2">
+                        <ListBox ItemsSource="{Binding VisibleTasks}" SelectedItem="{Binding SelectedTask, Mode=TwoWay}" BorderThickness="0" Background="Transparent" ItemContainerStyle="{StaticResource TaskListBoxItemStyle}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" Visibility="{Binding HasVisibleTasks, Converter={StaticResource BoolToVisibilityConverter}}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource InputBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="14" Padding="12">
+                                        <Grid MinHeight="70">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox IsChecked="{Binding IsCompleted, Mode=OneWay}" VerticalAlignment="Top" Margin="0,5,12,0" Command="{Binding DataContext.ToggleTaskCompleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" ToolTip="完成/取消完成"/>
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="{Binding Content}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                                    <TextBlock Text="{Binding DueText}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
+                                                    <TextBlock Text="  ·  " Foreground="{DynamicResource TextMutedBrush}" FontSize="12"/>
+                                                    <TextBlock Text="{Binding ReminderText}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
+                                                    <TextBlock Text="  ·  " Foreground="{DynamicResource TextMutedBrush}" FontSize="12"/>
+                                                    <TextBlock Text="{Binding ListDisplay}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding TagDisplay}" Foreground="{DynamicResource TextMutedBrush}" FontSize="11" Margin="0,5,0,0" Visibility="{Binding TagDisplay, Converter={StaticResource StringToVisConverter}}"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2" HorizontalAlignment="Right" Margin="12,0,0,0">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
+                                                    <Border Style="{StaticResource TaskBadge}" Visibility="{Binding IsOverdue, Converter={StaticResource BoolToVisibilityConverter}}"><TextBlock Text="逾期" Foreground="{DynamicResource DangerBrush}" FontSize="11" FontWeight="SemiBold"/></Border>
+                                                    <Border Style="{StaticResource TaskBadge}" Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityConverter}}"><TextBlock Text="暂停" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"/></Border>
+                                                    <Border Style="{StaticResource TaskBadge}" Visibility="{Binding Importance, Converter={StaticResource ImportanceToVisibilityConverter}}"><TextBlock Text="重要" Foreground="{DynamicResource DangerBrush}" FontSize="11" FontWeight="SemiBold"/></Border>
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                    <Button Content="暂停" Command="{Binding DataContext.ToggleTaskPauseCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Style="{StaticResource TaskButton}" Padding="9,4" FontSize="11" Margin="0,0,6,0"/>
+                                                    <Button Content="删除" Command="{Binding DataContext.DeleteTaskCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Style="{StaticResource TaskDangerButton}" Padding="9,4" FontSize="11"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <Border Background="{DynamicResource InputBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="18" Padding="34" MaxWidth="430" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasVisibleTasks, Converter={StaticResource InvertBoolToVisibilityConverter}}">
+                            <StackPanel Width="350">
+                                <Border Width="52" Height="52" CornerRadius="17" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" HorizontalAlignment="Center" Margin="0,0,0,12">
+                                    <TextBlock Text="&#xE728;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="{Binding EmptyTitle}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" TextAlignment="Center"/>
+                                <TextBlock Text="{Binding EmptyHint}" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="4" Style="{StaticResource TaskPanel}" Padding="18">
+                <Grid>
+                    <Grid Visibility="{Binding HasSelectedTask, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,4">
+                                    <TextBlock DockPanel.Dock="Left" Text="任务详情" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                    <Border DockPanel.Dock="Right" Background="{DynamicResource AccentLightBrush}" CornerRadius="12" Padding="10,4">
+                                        <TextBlock Text="{Binding SelectedTask.CompletionText}" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold"/>
+                                    </Border>
+                                </DockPanel>
+
+                                <TextBlock Text="基础信息" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,12,0,0"/>
+                                <TextBlock Text="标题" Style="{StaticResource TaskLabel}"/>
+                                <TextBox Text="{Binding EditTitle, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TaskInput}"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,6,0">
+                                        <TextBlock Text="清单" Style="{StaticResource TaskLabel}"/>
+                                        <TextBox Text="{Binding EditListName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TaskInput}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                        <TextBlock Text="重要性" Style="{StaticResource TaskLabel}"/>
+                                        <ComboBox Style="{StaticResource TaskCombo}" SelectedValue="{Binding EditImportance}" SelectedValuePath="Tag">
+                                            <ComboBoxItem Content="普通" Tag="{x:Static models:TaskImportance.Normal}"/>
+                                            <ComboBoxItem Content="重要" Tag="{x:Static models:TaskImportance.Important}"/>
+                                        </ComboBox>
                                     </StackPanel>
                                 </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
 
-            <!-- 空状态 -->
-            <TextBlock Text="暂无任务 — 在上方创建新任务"
-                       Foreground="{StaticResource TextMutedBrush}" FontSize="14"
-                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                       Visibility="{Binding TaskCount, Converter={StaticResource InvertBoolToVisibilityConverter}, FallbackValue=Visible}"/>
-            </Grid>
-        </Border>
+                                <TextBlock Text="标签（空格或逗号分隔）" Style="{StaticResource TaskLabel}"/>
+                                <TextBox Text="{Binding EditTagsText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TaskInput}"/>
+
+                                <TextBlock Text="提醒与重复" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,16,0,0"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,6,0">
+                                        <TextBlock Text="到期日" Style="{StaticResource TaskLabel}"/>
+                                        <DatePicker SelectedDate="{Binding EditDueDate}" Style="{StaticResource TaskDatePicker}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                        <TextBlock Text="重复" Style="{StaticResource TaskLabel}"/>
+                                        <ComboBox Style="{StaticResource TaskCombo}" SelectedValue="{Binding EditRepeatMode}" SelectedValuePath="Tag">
+                                            <ComboBoxItem Content="不重复" Tag="{x:Static models:TaskRepeatMode.Once}"/>
+                                            <ComboBoxItem Content="每天" Tag="{x:Static models:TaskRepeatMode.Daily}"/>
+                                            <ComboBoxItem Content="每周" Tag="{x:Static models:TaskRepeatMode.Weekly}"/>
+                                            <ComboBoxItem Content="自定义" Tag="{x:Static models:TaskRepeatMode.Custom}"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Grid>
+
+                                <CheckBox Content="设置提醒" IsChecked="{Binding EditHasReminder}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,14,0,0"/>
+                                <Grid Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="166"/>
+                                    </Grid.ColumnDefinitions>
+                                    <DatePicker SelectedDate="{Binding EditReminderDate}" Style="{StaticResource TaskDatePicker}"/>
+                                    <Grid Grid.Column="1" Margin="8,0,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="72"/>
+                                            <ColumnDefinition Width="18"/>
+                                            <ColumnDefinition Width="72"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ComboBox Style="{StaticResource TaskTimeCombo}"
+                                                  ItemsSource="{Binding HourOptions}"
+                                                  Text="{Binding EditReminderHourText, UpdateSourceTrigger=PropertyChanged}"
+                                                  ToolTip="小时：0-23，可手动输入"/>
+                                        <TextBlock Grid.Column="1" Text=":" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <ComboBox Grid.Column="2"
+                                                  Style="{StaticResource TaskTimeCombo}"
+                                                  ItemsSource="{Binding MinuteOptions}"
+                                                  Text="{Binding EditReminderMinuteText, UpdateSourceTrigger=PropertyChanged}"
+                                                  ToolTip="分钟：0-59，可手动输入"/>
+                                    </Grid>
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,6,0">
+                                        <TextBlock Text="提示音" Style="{StaticResource TaskLabel}"/>
+                                        <ComboBox Style="{StaticResource TaskCombo}" SelectedValue="{Binding EditAlertSound}" SelectedValuePath="Tag">
+                                            <ComboBoxItem Content="系统提示" Tag="SystemDefault"/>
+                                            <ComboBoxItem Content="静音" Tag="Silent"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="6,0,0,0" Visibility="{Binding IsCustomEditorVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                                        <TextBlock Text="自定义间隔" Style="{StaticResource TaskLabel}"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="88"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox Text="{Binding EditCustomInterval, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TaskInput}"/>
+                                            <ComboBox Grid.Column="1" Style="{StaticResource TaskCombo}" SelectedValue="{Binding EditCustomIntervalUnit}" SelectedValuePath="Content" Margin="8,0,0,0">
+                                                <ComboBoxItem Content="天"/>
+                                                <ComboBoxItem Content="小时"/>
+                                            </ComboBox>
+                                        </Grid>
+                                    </StackPanel>
+                                </Grid>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0" Visibility="{Binding IsWeeklyEditorVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <CheckBox Content="一" IsChecked="{Binding EditWeeklyMon}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,8,0"/>
+                                    <CheckBox Content="二" IsChecked="{Binding EditWeeklyTue}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,8,0"/>
+                                    <CheckBox Content="三" IsChecked="{Binding EditWeeklyWed}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,8,0"/>
+                                    <CheckBox Content="四" IsChecked="{Binding EditWeeklyThu}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,8,0"/>
+                                    <CheckBox Content="五" IsChecked="{Binding EditWeeklyFri}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,8,0"/>
+                                    <CheckBox Content="六" IsChecked="{Binding EditWeeklySat}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,8,0"/>
+                                    <CheckBox Content="日" IsChecked="{Binding EditWeeklySun}" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                </StackPanel>
+
+                                <CheckBox Content="暂停此任务（不会触发提醒）" IsChecked="{Binding EditIsPaused}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,14,0,0"/>
+
+                                <TextBlock Text="备注与步骤" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,16,0,0"/>
+                                <TextBlock Text="备注" Style="{StaticResource TaskLabel}"/>
+                                <TextBox Text="{Binding EditNotes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TaskInput}" Height="86" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top"/>
+
+                                <TextBlock Text="步骤" Style="{StaticResource TaskLabel}"/>
+                                <ItemsControl ItemsSource="{Binding SelectedTask.Steps}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,0,7">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <CheckBox IsChecked="{Binding IsDone, Mode=OneWay}" VerticalAlignment="Center" Command="{Binding DataContext.ToggleStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Title}" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap" Margin="8,0" VerticalAlignment="Center"/>
+                                                <Button Grid.Column="2" Content="删除" Command="{Binding DataContext.DeleteStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Style="{StaticResource TaskDangerButton}" Padding="8,3" FontSize="11"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Grid Margin="0,4,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding NewStepTitle, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TaskInput}"/>
+                                    <Button Grid.Column="1" Content="添加步骤" Command="{Binding AddStepCommand}" Style="{StaticResource TaskButton}" Margin="8,0,0,0"/>
+                                </Grid>
+
+                                <TextBlock Text="{Binding EditValidationMessage}" Foreground="{DynamicResource DangerBrush}" FontSize="12" Margin="0,10,0,0" Visibility="{Binding EditValidationMessage, Converter={StaticResource StringToVisConverter}}"/>
+
+                                <Grid Margin="0,14,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Content="保存修改" Command="{Binding SaveSelectedTaskCommand}" Style="{StaticResource TaskPrimaryButton}"/>
+                                    <Button Grid.Column="1" Content="删除任务" Command="{Binding DeleteTaskCommand}" CommandParameter="{Binding SelectedTask}" Style="{StaticResource TaskDangerButton}" Margin="8,0,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <Border Background="{DynamicResource InputBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="18" Padding="28" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasSelectedTask, Converter={StaticResource InvertBoolToVisibilityConverter}}">
+                        <StackPanel Width="266">
+                            <Border Width="52" Height="52" CornerRadius="17" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" HorizontalAlignment="Center" Margin="0,0,0,12">
+                                <TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="选择一个任务" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" TextAlignment="Center"/>
+                            <TextBlock Text="在这里编辑到期日、提醒、重复规则、标签、备注和步骤。" TextWrapping="Wrap" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}" TextAlignment="Center" Margin="0,8,0,0"/>
+                            <TextBlock Text="下一次提醒" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" TextAlignment="Center" Margin="0,18,0,2"/>
+                            <TextBlock Text="{Binding NextReminderSummary}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" TextAlignment="Center" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <TextBlock Grid.Row="2" Text="数据保存在本机 AppData，当前版本不联网同步。提醒时间为本地时间。" Foreground="{DynamicResource TextMutedBrush}" FontSize="11" Margin="2,8,0,0"/>
     </Grid>
 </UserControl>

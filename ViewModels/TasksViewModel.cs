@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Windows;
-using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Toolbox.Models;
@@ -8,394 +7,826 @@ using Toolbox.Services;
 
 namespace Toolbox.ViewModels;
 
+public enum TaskFilterKind
+{
+    All,
+    Today,
+    Upcoming,
+    Overdue,
+    Important,
+    Paused,
+    Completed,
+    Repeating,
+    List
+}
+
+public enum TaskSortMode
+{
+    Smart,
+    DueDate,
+    Priority,
+    CreatedAt,
+    UpdatedAt
+}
+
+public sealed class TaskFilterItem
+{
+    public TaskFilterKind Kind { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Icon { get; init; } = "\uE71D";
+    public string? ListName { get; init; }
+    public int Count { get; init; }
+    public string Group { get; init; } = "智能视图";
+    public string Key => Kind == TaskFilterKind.List ? $"list:{ListName}" : Kind.ToString();
+}
+
+public sealed class TaskSortOption
+{
+    public TaskSortMode Mode { get; init; }
+    public string Name { get; init; } = string.Empty;
+}
+
 /// <summary>
-/// 任务 ViewModel
-/// 管理任务 CRUD、勾选框完成状态、重要性/时间排序、悬浮面板控制
+/// 任务中心 ViewModel：本地离线任务、清单、筛选、详情编辑、子步骤和提醒状态。
 /// </summary>
 public partial class TasksViewModel : ViewModelBase
 {
     private readonly ITaskManagerService _taskService;
     private readonly ILogService _log;
+    private bool _isLoadingEditor;
+    private TaskItem? _lastDeletedTask;
 
-    // ==================== 任务列表 ====================
-
-    /// <summary>所有任务的显示列表</summary>
     [ObservableProperty]
-    private ObservableCollection<TaskItem> _tasks = new();
+    private ObservableCollection<TaskItem> _allTasks = new();
 
-    /// <summary>任务总数</summary>
     [ObservableProperty]
-    private int _taskCount;
+    private ObservableCollection<TaskItem> _visibleTasks = new();
 
-    /// <summary>是否按重要性排序（true=按重要性，false=按时间）</summary>
     [ObservableProperty]
-    private bool _sortByImportance;
+    private ObservableCollection<TaskFilterItem> _filters = new();
 
-    // ==================== 新建任务表单 ====================
-
-    /// <summary>新任务内容</summary>
     [ObservableProperty]
-    private string _newTaskContent = "";
+    private TaskFilterItem? _selectedFilter;
 
-    /// <summary>新任务日期</summary>
     [ObservableProperty]
-    private DateTime _newTaskDate = DateTime.Today;
+    private TaskItem? _selectedTask;
 
-    /// <summary>新任务小时</summary>
+    public ObservableCollection<TaskSortOption> SortOptions { get; } = new()
+    {
+        new TaskSortOption { Mode = TaskSortMode.Smart, Name = "智能排序" },
+        new TaskSortOption { Mode = TaskSortMode.DueDate, Name = "按到期时间" },
+        new TaskSortOption { Mode = TaskSortMode.Priority, Name = "按重要性" },
+        new TaskSortOption { Mode = TaskSortMode.CreatedAt, Name = "按创建时间" },
+        new TaskSortOption { Mode = TaskSortMode.UpdatedAt, Name = "按更新时间" }
+    };
+
+    public IReadOnlyList<string> HourOptions { get; } = Enumerable.Range(0, 24)
+        .Select(hour => hour.ToString("00"))
+        .ToArray();
+
+    public IReadOnlyList<string> MinuteOptions { get; } = Enumerable.Range(0, 60)
+        .Select(minute => minute.ToString("00"))
+        .ToArray();
+
     [ObservableProperty]
-    private string _newTaskHour = DateTime.Now.AddMinutes(5).Hour.ToString("D2");
+    private TaskSortOption? _selectedSortOption;
 
-    /// <summary>新任务分钟</summary>
     [ObservableProperty]
-    private string _newTaskMinute = DateTime.Now.AddMinutes(5).Minute.ToString("D2");
+    private string _searchText = string.Empty;
 
-    /// <summary>新任务秒</summary>
     [ObservableProperty]
-    private string _newTaskSecond = DateTime.Now.AddMinutes(5).Second.ToString("D2");
+    private int _totalCount;
 
-    /// <summary>新任务触发时间</summary>
     [ObservableProperty]
-    private DateTime _newTaskTime = DateTime.Now.AddMinutes(5);
+    private int _openCount;
 
-    /// <summary>新任务重复模式</summary>
     [ObservableProperty]
-    private TaskRepeatMode _newTaskRepeatMode = TaskRepeatMode.Once;
+    private int _todayCount;
 
-    /// <summary>新任务自定义间隔</summary>
     [ObservableProperty]
-    private int _newTaskCustomInterval = 1;
+    private int _overdueCount;
 
-    /// <summary>新任务自定义间隔单位</summary>
     [ObservableProperty]
-    private string _newTaskCustomIntervalUnit = "天";
+    private int _completedCount;
 
-    /// <summary>新任务重要性</summary>
     [ObservableProperty]
-    private TaskImportance _newTaskImportance = TaskImportance.Normal;
+    private string _nextReminderSummary = "无提醒";
 
-    /// <summary>新任务提示音</summary>
     [ObservableProperty]
-    private string _newTaskAlertSound = "SystemDefault";
+    private bool _hasVisibleTasks;
 
-    /// <summary>每周重复：星期一</summary>
     [ObservableProperty]
-    private bool _weeklyMon;
+    private bool _hasSelectedTask;
 
-    /// <summary>每周重复：星期二</summary>
     [ObservableProperty]
-    private bool _weeklyTue;
+    private bool _canUndoDelete;
 
-    /// <summary>每周重复：星期三</summary>
     [ObservableProperty]
-    private bool _weeklyWed;
+    private string _emptyTitle = "还没有任务";
 
-    /// <summary>每周重复：星期四</summary>
     [ObservableProperty]
-    private bool _weeklyThu;
+    private string _emptyHint = "创建一个本地任务，Toolbox 会在指定时间提醒你。";
 
-    /// <summary>每周重复：星期五</summary>
     [ObservableProperty]
-    private bool _weeklyFri;
+    private string _quickTitle = string.Empty;
 
-    /// <summary>每周重复：星期六</summary>
     [ObservableProperty]
-    private bool _weeklySat;
+    private DateTime? _quickDueDate = DateTime.Today;
 
-    /// <summary>每周重复：星期日</summary>
     [ObservableProperty]
-    private bool _weeklySun;
+    private string _quickTimeText = string.Empty;
 
-    /// <summary>自定义间隔是否合法</summary>
     [ObservableProperty]
-    private bool _isCustomIntervalValid = true;
+    private string _quickHourText = string.Empty;
 
-    /// <summary>自定义间隔错误提示</summary>
     [ObservableProperty]
-    private string _customIntervalError = "";
+    private string _quickMinuteText = string.Empty;
 
-    // ==================== 悬浮面板状态 ====================
-
-    /// <summary>悬浮面板是否可见</summary>
     [ObservableProperty]
-    private bool _isFloatingPanelOpen;
+    private bool _quickImportant;
 
-    /// <summary>悬浮面板是否置顶</summary>
     [ObservableProperty]
-    private bool _floatingPanelTopmost = true;
+    private string _quickInputError = string.Empty;
 
-    /// <summary>悬浮面板透明度</summary>
     [ObservableProperty]
-    private double _floatingPanelOpacity = 0.9;
+    private string _editTitle = string.Empty;
 
-    /// <summary>防抖锁</summary>
-    private bool _isProcessingClick;
+    [ObservableProperty]
+    private string _editNotes = string.Empty;
 
-    /// <summary>
-    /// 构造函数 — 依赖注入
-    /// </summary>
+    [ObservableProperty]
+    private string _editListName = "收件箱";
+
+    [ObservableProperty]
+    private string _editTagsText = string.Empty;
+
+    [ObservableProperty]
+    private DateTime? _editDueDate;
+
+    [ObservableProperty]
+    private bool _editHasReminder;
+
+    [ObservableProperty]
+    private DateTime? _editReminderDate;
+
+    [ObservableProperty]
+    private string _editReminderTime = "09:00";
+
+    [ObservableProperty]
+    private string _editReminderHourText = "09";
+
+    [ObservableProperty]
+    private string _editReminderMinuteText = "00";
+
+    [ObservableProperty]
+    private TaskRepeatMode _editRepeatMode = TaskRepeatMode.Once;
+
+    [ObservableProperty]
+    private int _editCustomInterval = 1;
+
+    [ObservableProperty]
+    private string _editCustomIntervalUnit = "天";
+
+    [ObservableProperty]
+    private TaskImportance _editImportance = TaskImportance.Normal;
+
+    [ObservableProperty]
+    private string _editAlertSound = "SystemDefault";
+
+    [ObservableProperty]
+    private bool _editIsPaused;
+
+    [ObservableProperty]
+    private bool _editWeeklyMon;
+
+    [ObservableProperty]
+    private bool _editWeeklyTue;
+
+    [ObservableProperty]
+    private bool _editWeeklyWed;
+
+    [ObservableProperty]
+    private bool _editWeeklyThu;
+
+    [ObservableProperty]
+    private bool _editWeeklyFri;
+
+    [ObservableProperty]
+    private bool _editWeeklySat;
+
+    [ObservableProperty]
+    private bool _editWeeklySun;
+
+    [ObservableProperty]
+    private bool _isWeeklyEditorVisible;
+
+    [ObservableProperty]
+    private bool _isCustomEditorVisible;
+
+    [ObservableProperty]
+    private string _editValidationMessage = string.Empty;
+
+    [ObservableProperty]
+    private string _newStepTitle = string.Empty;
+
     public TasksViewModel(ITaskManagerService taskService, ILogService log)
     {
         _taskService = taskService;
         _log = log;
+        SelectedSortOption = SortOptions[0];
 
-        // 加载已有任务
-        RefreshTasks();
-
-        // 监听任务触发
+        _taskService.TasksChanged += OnTasksChanged;
         _taskService.TaskTriggered += OnTaskTriggered;
-        _taskService.TasksChanged += RefreshTasks;
 
-        StatusMessage = "就绪 — 创建新任务或管理已有任务";
+        RefreshFromService();
+        StatusMessage = "任务中心就绪 — 本地保存，切换页面不会丢失";
     }
 
-    /// <summary>
-    /// 刷新任务列表
-    /// 已完成任务沉底，暂停任务显示虚线样式
-    /// </summary>
-    private void RefreshTasks()
-    {
-        var allTasks = _taskService.Tasks;
-
-        // 排序逻辑
-        IEnumerable<TaskItem> sorted;
-        if (SortByImportance)
-        {
-            // 按重要性排序：重要 > 普通，已完成沉底
-            sorted = allTasks
-                .OrderBy(t => t.IsCompleted)
-                .ThenByDescending(t => t.Importance == TaskImportance.Important)
-                .ThenBy(t => t.NextTriggerTime);
-        }
-        else
-        {
-            // 按时间排序：未完成按时间升序，已完成沉底
-            sorted = allTasks
-                .OrderBy(t => t.IsCompleted)
-                .ThenBy(t => t.NextTriggerTime);
-        }
-
-        Tasks = new ObservableCollection<TaskItem>(sorted);
-        TaskCount = Tasks.Count;
-    }
-
-    // ==================== 新建任务 ====================
-
-    /// <summary>
-    /// 添加新任务（带防抖）
-    /// </summary>
     [RelayCommand]
-    private void AddTask()
+    private void AddQuickTask()
     {
-        if (_isProcessingClick) return;
-
-        try
+        QuickInputError = string.Empty;
+        var title = QuickTitle.Trim();
+        if (string.IsNullOrWhiteSpace(title))
         {
-            _isProcessingClick = true;
-
-            if (string.IsNullOrWhiteSpace(NewTaskContent))
-            {
-                StatusMessage = "请输入任务内容";
-                return;
-            }
-
-            // 检查上限
-            if (_taskService.Tasks.Count >= 200)
-            {
-                StatusMessage = "任务数量已达上限（200），无法添加新任务";
-                return;
-            }
-
-            // 组合日期 + 小时:分钟:秒
-            if (!int.TryParse(NewTaskHour, out var hour) || hour < 0 || hour > 23)
-            {
-                StatusMessage = "小时必须在 00-23 之间";
-                return;
-            }
-            if (!int.TryParse(NewTaskMinute, out var minute) || minute < 0 || minute > 59)
-            {
-                StatusMessage = "分钟必须在 00-59 之间";
-                return;
-            }
-            if (!int.TryParse(NewTaskSecond, out var second) || second < 0 || second > 59)
-            {
-                StatusMessage = "秒钟必须在 00-59 之间";
-                return;
-            }
-
-            var triggerTime = new DateTime(NewTaskDate.Year, NewTaskDate.Month, NewTaskDate.Day, hour, minute, second);
-
-            // 构建星期几字符串
-            var weeklyDays = new List<int>();
-            if (WeeklyMon) weeklyDays.Add(1);
-            if (WeeklyTue) weeklyDays.Add(2);
-            if (WeeklyWed) weeklyDays.Add(3);
-            if (WeeklyThu) weeklyDays.Add(4);
-            if (WeeklyFri) weeklyDays.Add(5);
-            if (WeeklySat) weeklyDays.Add(6);
-            if (WeeklySun) weeklyDays.Add(7);
-
-            var task = new TaskItem
-            {
-                Content = NewTaskContent,
-                TriggerTime = triggerTime,
-                RepeatMode = NewTaskRepeatMode,
-                CustomInterval = NewTaskCustomInterval,
-                CustomIntervalUnit = NewTaskCustomIntervalUnit,
-                WeeklyDays = string.Join(",", weeklyDays),
-                Importance = NewTaskImportance,
-                AlertSound = NewTaskAlertSound
-            };
-
-            if (!_taskService.AddTask(task))
-            {
-                StatusMessage = "添加任务失败，已达上限";
-                return;
-            }
-
-            // 重置表单
-            NewTaskContent = "";
-            NewTaskDate = DateTime.Today;
-            var resetTime = DateTime.Now.AddMinutes(5);
-            NewTaskHour = resetTime.Hour.ToString("D2");
-            NewTaskMinute = resetTime.Minute.ToString("D2");
-            NewTaskSecond = resetTime.Second.ToString("D2");
-            NewTaskTime = resetTime;
-            NewTaskRepeatMode = TaskRepeatMode.Once;
-            NewTaskCustomInterval = 1;
-            NewTaskCustomIntervalUnit = "天";
-            NewTaskImportance = TaskImportance.Normal;
-            NewTaskAlertSound = "SystemDefault";
-            WeeklyMon = WeeklyTue = WeeklyWed = WeeklyThu = WeeklyFri = WeeklySat = WeeklySun = false;
-
-            RefreshTasks();
-            StatusMessage = $"任务已添加: {task.Content}";
-            _log.LogInfo($"新任务已创建: {task.Id}");
+            QuickInputError = "请输入任务标题";
+            return;
         }
-        finally
+
+        var reminder = BuildQuickReminder();
+        if (!string.IsNullOrWhiteSpace(QuickInputError))
+            return;
+
+        var listName = SelectedFilter?.Kind == TaskFilterKind.List && !string.IsNullOrWhiteSpace(SelectedFilter.ListName)
+            ? SelectedFilter.ListName!
+            : "收件箱";
+
+        var task = new TaskItem
         {
-            _isProcessingClick = false;
+            Content = title,
+            ListName = listName,
+            DueDate = QuickDueDate?.Date,
+            ReminderAt = reminder,
+            Importance = QuickImportant ? TaskImportance.Important : TaskImportance.Normal
+        };
+
+        if (!_taskService.AddTask(task))
+        {
+            QuickInputError = "添加失败，任务数量已达到上限";
+            return;
         }
+
+        QuickTitle = string.Empty;
+        QuickTimeText = string.Empty;
+        QuickHourText = string.Empty;
+        QuickMinuteText = string.Empty;
+        QuickImportant = false;
+        SelectedTask = task;
+        StatusMessage = $"已添加任务：{task.Content}";
     }
 
-    // ==================== 任务操作 ====================
+    [RelayCommand]
+    private void SetQuickDueToday() => QuickDueDate = DateTime.Today;
 
-    /// <summary>
-    /// 切换任务完成状态
-    /// </summary>
+    [RelayCommand]
+    private void SetQuickDueTomorrow() => QuickDueDate = DateTime.Today.AddDays(1);
+
+    [RelayCommand]
+    private void ClearQuickDue() => QuickDueDate = null;
+
     [RelayCommand]
     private void ToggleTaskComplete(TaskItem? task)
     {
         if (task == null) return;
         _taskService.ToggleComplete(task.Id);
-        RefreshTasks();
-        StatusMessage = task.IsCompleted ? $"任务已完成: {task.Content}" : $"任务已重新激活: {task.Content}";
+        StatusMessage = task.IsCompleted ? $"已重新激活：{task.Content}" : $"已完成：{task.Content}";
     }
 
-    /// <summary>
-    /// 切换任务暂停状态
-    /// </summary>
     [RelayCommand]
     private void ToggleTaskPause(TaskItem? task)
     {
         if (task == null) return;
         _taskService.TogglePause(task.Id);
-        RefreshTasks();
-        StatusMessage = task.IsPaused ? $"任务已暂停: {task.Content}" : $"任务已恢复: {task.Content}";
+        StatusMessage = task.IsPaused ? $"已恢复：{task.Content}" : $"已暂停：{task.Content}";
     }
 
-    /// <summary>
-    /// 删除任务
-    /// </summary>
     [RelayCommand]
     private void DeleteTask(TaskItem? task)
     {
         if (task == null) return;
+        _lastDeletedTask = CloneTask(task);
         _taskService.DeleteTask(task.Id);
-        RefreshTasks();
-        StatusMessage = $"任务已删除: {task.Content}";
+        CanUndoDelete = true;
+        if (SelectedTask?.Id == task.Id)
+            SelectedTask = null;
+        StatusMessage = $"已删除“{task.Content}”，可撤销";
     }
 
-    /// <summary>
-    /// 一键清除所有已完成任务
-    /// </summary>
+    [RelayCommand]
+    private void UndoDelete()
+    {
+        if (_lastDeletedTask == null) return;
+        var restored = CloneTask(_lastDeletedTask);
+        restored.Id = Guid.NewGuid().ToString("N");
+        _taskService.AddTask(restored);
+        SelectedTask = restored;
+        _lastDeletedTask = null;
+        CanUndoDelete = false;
+        StatusMessage = $"已恢复：{restored.Content}";
+    }
+
     [RelayCommand]
     private void ClearCompletedTasks()
     {
-        int count = _taskService.ClearCompleted();
-        RefreshTasks();
-        StatusMessage = count > 0 ? $"已清除 {count} 个已完成任务" : "没有已完成的任务可清除";
+        var count = _taskService.ClearCompleted();
+        StatusMessage = count > 0 ? $"已清除 {count} 个已完成任务" : "没有已完成任务可清除";
     }
 
-    /// <summary>
-    /// 切换排序方式
-    /// </summary>
     [RelayCommand]
-    private void ToggleSort()
+    private void SaveSelectedTask()
     {
-        SortByImportance = !SortByImportance;
-        RefreshTasks();
-        StatusMessage = SortByImportance ? "按重要性排序" : "按时间排序";
-    }
+        if (SelectedTask == null) return;
 
-    // ==================== 悬浮面板 ====================
-
-    /// <summary>
-    /// 打开/关闭悬浮面板
-    /// </summary>
-    [RelayCommand]
-    private void ToggleFloatingPanel()
-    {
-        IsFloatingPanelOpen = !IsFloatingPanelOpen;
-        StatusMessage = IsFloatingPanelOpen ? "悬浮面板已打开" : "悬浮面板已关闭";
-    }
-
-    /// <summary>
-    /// 自定义间隔验证
-    /// </summary>
-    partial void OnNewTaskCustomIntervalChanged(int value)
-    {
-        if (NewTaskRepeatMode == TaskRepeatMode.Custom)
+        EditValidationMessage = string.Empty;
+        var title = EditTitle.Trim();
+        if (string.IsNullOrWhiteSpace(title))
         {
-            if (value < 1)
+            EditValidationMessage = "任务标题不能为空";
+            return;
+        }
+
+        var reminder = BuildEditorReminder();
+        if (!string.IsNullOrWhiteSpace(EditValidationMessage))
+            return;
+
+        if (EditRepeatMode != TaskRepeatMode.Once && !reminder.HasValue)
+        {
+            EditValidationMessage = "重复任务需要设置提醒时间";
+            return;
+        }
+
+        if (EditRepeatMode == TaskRepeatMode.Custom)
+        {
+            var unit = EditCustomIntervalUnit == "小时" ? "小时" : "天";
+            var limit = unit == "小时" ? 8760 : 365;
+            if (EditCustomInterval < 1 || EditCustomInterval > limit)
             {
-                IsCustomIntervalValid = false;
-                CustomIntervalError = "间隔必须大于 0";
-            }
-            else if ((NewTaskCustomIntervalUnit == "天" && value > 365) || (NewTaskCustomIntervalUnit == "小时" && value > 8760))
-            {
-                IsCustomIntervalValid = false;
-                CustomIntervalError = NewTaskCustomIntervalUnit == "天" ? "天数不能超过 365" : "小时不能超过 8760";
-            }
-            else
-            {
-                IsCustomIntervalValid = true;
-                CustomIntervalError = "";
+                EditValidationMessage = unit == "小时" ? "小时间隔必须在 1-8760 之间" : "天数间隔必须在 1-365 之间";
+                return;
             }
         }
+
+        SelectedTask.Content = title;
+        SelectedTask.Notes = EditNotes.Trim();
+        SelectedTask.ListName = string.IsNullOrWhiteSpace(EditListName) ? "收件箱" : EditListName.Trim();
+        SelectedTask.Tags = new ObservableCollection<string>(ParseTags(EditTagsText));
+        SelectedTask.DueDate = EditDueDate?.Date;
+        SelectedTask.ReminderAt = reminder;
+        SelectedTask.RepeatMode = EditRepeatMode;
+        SelectedTask.CustomInterval = Math.Max(1, EditCustomInterval);
+        SelectedTask.CustomIntervalUnit = EditCustomIntervalUnit == "小时" ? "小时" : "天";
+        SelectedTask.Importance = EditImportance;
+        SelectedTask.AlertSound = EditAlertSound;
+        SelectedTask.IsPaused = EditIsPaused;
+        SelectedTask.WeeklyDays = BuildWeeklyDays();
+        SelectedTask.MarkUpdated();
+
+        _taskService.UpdateTask(SelectedTask);
+        StatusMessage = $"已保存：{SelectedTask.Content}";
     }
 
-    partial void OnNewTaskCustomIntervalUnitChanged(string value)
+    [RelayCommand]
+    private void AddStep()
     {
-        OnNewTaskCustomIntervalChanged(NewTaskCustomInterval);
+        if (SelectedTask == null) return;
+        var title = NewStepTitle.Trim();
+        if (string.IsNullOrWhiteSpace(title)) return;
+
+        SelectedTask.Steps.Add(new TaskStepItem { Title = title });
+        NewStepTitle = string.Empty;
+        _taskService.UpdateTask(SelectedTask);
+        LoadEditorFromTask(SelectedTask);
     }
 
-    partial void OnSortByImportanceChanged(bool value)
+    [RelayCommand]
+    private void ToggleStep(TaskStepItem? step)
     {
-        StatusMessage = value ? "当前按重要性排序" : "当前按时间排序";
-        RefreshTasks();
+        if (SelectedTask == null || step == null) return;
+        step.IsDone = !step.IsDone;
+        _taskService.UpdateTask(SelectedTask);
+        OnPropertyChanged(nameof(SelectedTask));
     }
 
-    /// <summary>
-    /// 任务触发回调
-    /// 重要任务需要循环提示音
-    /// </summary>
+    [RelayCommand]
+    private void DeleteStep(TaskStepItem? step)
+    {
+        if (SelectedTask == null || step == null) return;
+        SelectedTask.Steps.Remove(step);
+        _taskService.UpdateTask(SelectedTask);
+        LoadEditorFromTask(SelectedTask);
+    }
+
+    [RelayCommand]
+    private void SelectTask(TaskItem? task) => SelectedTask = task;
+
+    [RelayCommand]
+    private void ClearSearch()
+    {
+        SearchText = string.Empty;
+        ApplyFilters();
+    }
+
+    partial void OnSelectedFilterChanged(TaskFilterItem? value)
+    {
+        ApplyFilters();
+    }
+
+    partial void OnSelectedSortOptionChanged(TaskSortOption? value)
+    {
+        ApplyFilters();
+    }
+
+    partial void OnSearchTextChanged(string value)
+    {
+        ApplyFilters();
+    }
+
+    partial void OnSelectedTaskChanged(TaskItem? value)
+    {
+        HasSelectedTask = value != null;
+        if (value != null)
+            LoadEditorFromTask(value);
+        else
+            ClearEditor();
+    }
+
+    partial void OnEditRepeatModeChanged(TaskRepeatMode value)
+    {
+        if (_isLoadingEditor) return;
+        RefreshEditorVisibility();
+    }
+
+    private void OnTasksChanged()
+    {
+        if (Application.Current?.Dispatcher?.CheckAccess() == true)
+            RefreshFromService();
+        else
+            Application.Current?.Dispatcher?.InvokeAsync(RefreshFromService);
+    }
+
     private void OnTaskTriggered(TaskItem task)
     {
-        Application.Current.Dispatcher.InvokeAsync(() =>
+        Application.Current?.Dispatcher?.InvokeAsync(() =>
         {
-            _taskService.PlayAlertSound(task);
-            StatusMessage = $"任务触发: {task.Content}";
-            RefreshTasks();
+            StatusMessage = $"提醒：{task.Content}";
+            RefreshFromService();
         });
+    }
+
+    private void RefreshFromService()
+    {
+        var selectedKey = SelectedFilter?.Key;
+        var selectedTaskId = SelectedTask?.Id;
+        var tasks = _taskService.Tasks
+            .OrderBy(t => t.IsCompleted)
+            .ThenBy(t => t.SortDate)
+            .ToList();
+
+        AllTasks = new ObservableCollection<TaskItem>(tasks);
+        RebuildFilters(tasks, selectedKey);
+        ApplyFilters(selectTaskId: selectedTaskId);
+        RefreshStats(tasks);
+    }
+
+    private void RebuildFilters(IReadOnlyList<TaskItem> tasks, string? selectedKey)
+    {
+        var filters = new List<TaskFilterItem>
+        {
+            CreateFilter(TaskFilterKind.All, "全部未完成", "\uE71D", tasks.Count(t => !t.IsCompleted)),
+            CreateFilter(TaskFilterKind.Today, "今天", "\uE787", tasks.Count(t => !t.IsCompleted && t.IsDueToday)),
+            CreateFilter(TaskFilterKind.Upcoming, "未来 7 天", "\uE72A", tasks.Count(t => t.IsUpcoming)),
+            CreateFilter(TaskFilterKind.Overdue, "已逾期", "\uE730", tasks.Count(t => t.IsOverdue)),
+            CreateFilter(TaskFilterKind.Important, "重要", "\uE734", tasks.Count(t => !t.IsCompleted && t.Importance == TaskImportance.Important)),
+            CreateFilter(TaskFilterKind.Paused, "已暂停", "\uE769", tasks.Count(t => !t.IsCompleted && t.IsPaused)),
+            CreateFilter(TaskFilterKind.Repeating, "重复任务", "\uE72C", tasks.Count(t => !t.IsCompleted && t.RepeatMode != TaskRepeatMode.Once)),
+            CreateFilter(TaskFilterKind.Completed, "已完成", "\uE73E", tasks.Count(t => t.IsCompleted))
+        };
+
+        foreach (var list in tasks.Select(t => t.ListDisplay).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().OrderBy(s => s))
+        {
+            filters.Add(new TaskFilterItem
+            {
+                Kind = TaskFilterKind.List,
+                Name = list,
+                Icon = "\uE8B7",
+                ListName = list,
+                Count = tasks.Count(t => !t.IsCompleted && string.Equals(t.ListDisplay, list, StringComparison.OrdinalIgnoreCase)),
+                Group = "清单"
+            });
+        }
+
+        Filters = new ObservableCollection<TaskFilterItem>(filters);
+        SelectedFilter = filters.FirstOrDefault(f => f.Key == selectedKey) ?? filters[0];
+    }
+
+    private static TaskFilterItem CreateFilter(TaskFilterKind kind, string name, string icon, int count)
+        => new() { Kind = kind, Name = name, Icon = icon, Count = count, Group = "智能视图" };
+
+    private void ApplyFilters(string? selectTaskId = null)
+    {
+        var filter = SelectedFilter;
+        IEnumerable<TaskItem> query = AllTasks;
+
+        query = filter?.Kind switch
+        {
+            TaskFilterKind.Today => query.Where(t => !t.IsCompleted && t.IsDueToday),
+            TaskFilterKind.Upcoming => query.Where(t => t.IsUpcoming),
+            TaskFilterKind.Overdue => query.Where(t => t.IsOverdue),
+            TaskFilterKind.Important => query.Where(t => !t.IsCompleted && t.Importance == TaskImportance.Important),
+            TaskFilterKind.Paused => query.Where(t => !t.IsCompleted && t.IsPaused),
+            TaskFilterKind.Completed => query.Where(t => t.IsCompleted),
+            TaskFilterKind.Repeating => query.Where(t => !t.IsCompleted && t.RepeatMode != TaskRepeatMode.Once),
+            TaskFilterKind.List => query.Where(t => !t.IsCompleted && string.Equals(t.ListDisplay, filter.ListName, StringComparison.OrdinalIgnoreCase)),
+            _ => query.Where(t => !t.IsCompleted)
+        };
+
+        if (!string.IsNullOrWhiteSpace(SearchText))
+        {
+            var key = SearchText.Trim();
+            query = query.Where(t => Contains(t.Content, key) || Contains(t.Notes, key) ||
+                                     Contains(t.ListDisplay, key) || t.Tags.Any(tag => Contains(tag, key)) ||
+                                     t.Steps.Any(step => Contains(step.Title, key)));
+        }
+
+        query = SortTasks(query, SelectedSortOption?.Mode ?? TaskSortMode.Smart);
+        var result = query.ToList();
+        VisibleTasks = new ObservableCollection<TaskItem>(result);
+        HasVisibleTasks = result.Count > 0;
+        UpdateEmptyState(filter);
+
+        if (selectTaskId != null)
+            SelectedTask = result.FirstOrDefault(t => t.Id == selectTaskId) ?? AllTasks.FirstOrDefault(t => t.Id == selectTaskId);
+        else if (SelectedTask != null && AllTasks.All(t => t.Id != SelectedTask.Id))
+            SelectedTask = null;
+    }
+
+    private static IEnumerable<TaskItem> SortTasks(IEnumerable<TaskItem> tasks, TaskSortMode mode)
+    {
+        return mode switch
+        {
+            TaskSortMode.DueDate => tasks.OrderBy(t => t.DueDate ?? DateTime.MaxValue).ThenByDescending(t => t.Importance),
+            TaskSortMode.Priority => tasks.OrderByDescending(t => t.Importance).ThenBy(t => t.DueDate ?? DateTime.MaxValue),
+            TaskSortMode.CreatedAt => tasks.OrderByDescending(t => t.CreatedAt),
+            TaskSortMode.UpdatedAt => tasks.OrderByDescending(t => t.UpdatedAt),
+            _ => tasks
+                .OrderBy(t => t.IsCompleted)
+                .ThenBy(t => t.IsPaused)
+                .ThenByDescending(t => t.IsOverdue)
+                .ThenBy(t => t.DueDate ?? DateTime.MaxValue)
+                .ThenByDescending(t => t.Importance)
+                .ThenBy(t => t.CreatedAt)
+        };
+    }
+
+    private void RefreshStats(IReadOnlyList<TaskItem> tasks)
+    {
+        TotalCount = tasks.Count;
+        OpenCount = tasks.Count(t => !t.IsCompleted);
+        TodayCount = tasks.Count(t => !t.IsCompleted && t.IsDueToday);
+        OverdueCount = tasks.Count(t => t.IsOverdue);
+        CompletedCount = tasks.Count(t => t.IsCompleted);
+
+        var next = tasks.Where(t => !t.IsCompleted && !t.IsPaused && t.ReminderAt.HasValue)
+            .OrderBy(t => t.NextTriggerTime)
+            .FirstOrDefault();
+        NextReminderSummary = next == null || next.NextTriggerTime == DateTime.MaxValue
+            ? "无提醒"
+            : $"{next.Content} · {next.NextTriggerTime:MM-dd HH:mm}";
+    }
+
+    private void LoadEditorFromTask(TaskItem task)
+    {
+        _isLoadingEditor = true;
+        EditTitle = task.Content;
+        EditNotes = task.Notes;
+        EditListName = task.ListDisplay;
+        EditTagsText = string.Join(", ", task.Tags);
+        EditDueDate = task.DueDate;
+        EditHasReminder = task.ReminderAt.HasValue;
+        EditReminderDate = task.ReminderAt?.Date ?? task.DueDate ?? DateTime.Today;
+        EditReminderTime = task.ReminderAt?.ToString("HH:mm") ?? "09:00";
+        EditReminderHourText = task.ReminderAt?.ToString("HH") ?? "09";
+        EditReminderMinuteText = task.ReminderAt?.ToString("mm") ?? "00";
+        EditRepeatMode = task.RepeatMode;
+        EditCustomInterval = Math.Max(1, task.CustomInterval);
+        EditCustomIntervalUnit = task.CustomIntervalUnit == "小时" ? "小时" : "天";
+        EditImportance = task.Importance;
+        EditAlertSound = task.AlertSound;
+        EditIsPaused = task.IsPaused;
+        LoadWeeklyDays(task.WeeklyDays);
+        EditValidationMessage = string.Empty;
+        NewStepTitle = string.Empty;
+        _isLoadingEditor = false;
+        RefreshEditorVisibility();
+    }
+
+    private void ClearEditor()
+    {
+        _isLoadingEditor = true;
+        EditTitle = string.Empty;
+        EditNotes = string.Empty;
+        EditListName = "收件箱";
+        EditTagsText = string.Empty;
+        EditDueDate = null;
+        EditHasReminder = false;
+        EditReminderDate = DateTime.Today;
+        EditReminderTime = "09:00";
+        EditReminderHourText = "09";
+        EditReminderMinuteText = "00";
+        EditRepeatMode = TaskRepeatMode.Once;
+        EditCustomInterval = 1;
+        EditCustomIntervalUnit = "天";
+        EditImportance = TaskImportance.Normal;
+        EditAlertSound = "SystemDefault";
+        EditIsPaused = false;
+        EditWeeklyMon = EditWeeklyTue = EditWeeklyWed = EditWeeklyThu = EditWeeklyFri = EditWeeklySat = EditWeeklySun = false;
+        EditValidationMessage = string.Empty;
+        NewStepTitle = string.Empty;
+        _isLoadingEditor = false;
+        RefreshEditorVisibility();
+    }
+
+    private void RefreshEditorVisibility()
+    {
+        IsWeeklyEditorVisible = EditRepeatMode == TaskRepeatMode.Weekly;
+        IsCustomEditorVisible = EditRepeatMode == TaskRepeatMode.Custom;
+    }
+
+    private DateTime? BuildQuickReminder()
+    {
+        var quickTime = BuildTimeText(QuickHourText, QuickMinuteText, QuickTimeText);
+        if (string.IsNullOrWhiteSpace(quickTime))
+            return null;
+
+        if (!TryParseTime(quickTime, out var time))
+        {
+            QuickInputError = "提醒时间请选择 0-23 点、0-59 分，或输入 HH:mm";
+            return null;
+        }
+
+        var date = QuickDueDate?.Date ?? DateTime.Today;
+        var reminder = date.Add(time);
+        if (reminder < DateTime.Now.AddMinutes(-1))
+            reminder = reminder.AddDays(1);
+        return reminder;
+    }
+
+    private DateTime? BuildEditorReminder()
+    {
+        if (!EditHasReminder)
+            return null;
+
+        var editTime = BuildTimeText(EditReminderHourText, EditReminderMinuteText, EditReminderTime);
+        if (!TryParseTime(editTime, out var time))
+        {
+            EditValidationMessage = "提醒时间请选择 0-23 点、0-59 分，或输入 HH:mm";
+            return null;
+        }
+
+        var date = (EditReminderDate ?? EditDueDate ?? DateTime.Today).Date;
+        return date.Add(time);
+    }
+
+    private string BuildWeeklyDays()
+    {
+        var days = new List<int>();
+        if (EditWeeklyMon) days.Add(1);
+        if (EditWeeklyTue) days.Add(2);
+        if (EditWeeklyWed) days.Add(3);
+        if (EditWeeklyThu) days.Add(4);
+        if (EditWeeklyFri) days.Add(5);
+        if (EditWeeklySat) days.Add(6);
+        if (EditWeeklySun) days.Add(7);
+        return string.Join(",", days);
+    }
+
+    private void LoadWeeklyDays(string? weeklyDays)
+    {
+        var days = (weeklyDays ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(d => int.TryParse(d, out var value) ? value : -1)
+            .ToHashSet();
+
+        EditWeeklyMon = days.Contains(1);
+        EditWeeklyTue = days.Contains(2);
+        EditWeeklyWed = days.Contains(3);
+        EditWeeklyThu = days.Contains(4);
+        EditWeeklyFri = days.Contains(5);
+        EditWeeklySat = days.Contains(6);
+        EditWeeklySun = days.Contains(7);
+    }
+
+    private void UpdateEmptyState(TaskFilterItem? filter)
+    {
+        if (!string.IsNullOrWhiteSpace(SearchText))
+        {
+            EmptyTitle = "没有符合搜索条件的任务";
+            EmptyHint = "换个关键词，或清空搜索后查看全部任务。";
+            return;
+        }
+
+        EmptyTitle = filter?.Kind switch
+        {
+            TaskFilterKind.Today => "今天没有待办任务",
+            TaskFilterKind.Upcoming => "未来 7 天没有任务",
+            TaskFilterKind.Overdue => "没有逾期任务",
+            TaskFilterKind.Important => "没有重要任务",
+            TaskFilterKind.Paused => "没有暂停任务",
+            TaskFilterKind.Completed => "还没有已完成任务",
+            TaskFilterKind.List => $"“{filter.Name}”清单没有未完成任务",
+            _ => TotalCount == 0 ? "还没有任务" : "当前视图没有任务"
+        };
+
+        EmptyHint = filter?.Kind == TaskFilterKind.Completed
+            ? "完成任务后会出现在这里。"
+            : "可以使用上方快速添加创建一个新任务。";
+    }
+
+    private static string BuildTimeText(string hourText, string minuteText, string fallbackText)
+    {
+        var hour = hourText?.Trim() ?? string.Empty;
+        var minute = minuteText?.Trim() ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(hour) || !string.IsNullOrWhiteSpace(minute))
+            return $"{hour}:{minute}";
+
+        return fallbackText?.Trim() ?? string.Empty;
+    }
+
+    private static bool TryParseTime(string text, out TimeSpan time)
+    {
+        time = default;
+        var normalized = text.Trim().Replace('：', ':');
+
+        var parts = normalized.Split(':', StringSplitOptions.TrimEntries);
+        if (parts.Length != 2) return false;
+        if (!int.TryParse(parts[0], out var hour)) return false;
+        if (!int.TryParse(parts[1], out var minute)) return false;
+        if (hour is < 0 or > 23) return false;
+        if (minute is < 0 or > 59) return false;
+
+        time = new TimeSpan(hour, minute, 0);
+        return true;
+    }
+
+    private static IEnumerable<string> ParseTags(string text)
+    {
+        return (text ?? string.Empty)
+            .Replace('，', ',')
+            .Split(new[] { ',', ' ', ';', '；', '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(t => t.Trim().TrimStart('#'))
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static bool Contains(string? source, string value)
+        => !string.IsNullOrWhiteSpace(source) && source.Contains(value, StringComparison.OrdinalIgnoreCase);
+
+    private static TaskItem CloneTask(TaskItem source)
+    {
+        var clone = new TaskItem
+        {
+            Id = source.Id,
+            Content = source.Content,
+            Notes = source.Notes,
+            ListName = source.ListName,
+            DueDate = source.DueDate,
+            ReminderAt = source.ReminderAt,
+            TriggerTime = source.TriggerTime,
+            RepeatMode = source.RepeatMode,
+            CustomInterval = source.CustomInterval,
+            CustomIntervalUnit = source.CustomIntervalUnit,
+            WeeklyDays = source.WeeklyDays,
+            Importance = source.Importance,
+            AlertSound = source.AlertSound,
+            AlertSoundPath = source.AlertSoundPath,
+            IsCompleted = source.IsCompleted,
+            IsPaused = source.IsPaused,
+            CreatedAt = source.CreatedAt,
+            UpdatedAt = source.UpdatedAt,
+            CompletedAt = source.CompletedAt,
+            LastTriggeredAt = source.LastTriggeredAt,
+            NextTriggerTime = source.NextTriggerTime,
+            Tags = new ObservableCollection<string>(source.Tags),
+            Steps = new ObservableCollection<TaskStepItem>(source.Steps.Select(s => new TaskStepItem
+            {
+                Id = s.Id,
+                Title = s.Title,
+                IsDone = s.IsDone,
+                CreatedAt = s.CreatedAt
+            }))
+        };
+        clone.NormalizeAfterLoad();
+        return clone;
     }
 }

@@ -24,6 +24,9 @@ public partial class ColorPickerViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isPicking;
 
+    [ObservableProperty]
+    private bool _hasPickedColor;
+
     /// <summary>当前取色位置 X（屏幕坐标）</summary>
     [ObservableProperty]
     private int _mouseX;
@@ -120,6 +123,7 @@ public partial class ColorPickerViewModel : ViewModelBase
     {
         if (IsPicking) return;
 
+        HasPickedColor = false;
         IsPicking = true;
         IsBusy = true;
         StatusMessage = "取色中 — 移动鼠标选择颜色，点击左键锁定，Esc 取消";
@@ -244,6 +248,7 @@ public partial class ColorPickerViewModel : ViewModelBase
 
         UpdateCurrentColor(color, MouseX, MouseY);
         AddToHistory(color);
+        HasPickedColor = true;
         IsPicking = false;
         IsBusy = false;
         StatusMessage = $"取色完成: {HexValue}";

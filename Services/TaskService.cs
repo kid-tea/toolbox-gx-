@@ -1,106 +1,180 @@
-using System.Collections.ObjectModel;
-using System.IO;
+﻿using System.IO;
 using System.Media;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Toolbox.Models;
 
 namespace Toolbox.Services;
 
 /// <summary>
-/// 任务服务
-/// 负责任务存储到 tasks.json、定时触发管理、错过触发检测
-/// 使用后台计时器检测任务触发时间
+/// 本地任务服务。
+/// 数据保存在 %AppData%\Toolbox\tasks.json，并兼容读取旧版 %AppData%\工具箱\tasks.json。
 /// </summary>
-public class TaskManagerService : ITaskManagerService
+public sealed class TaskManagerService : ITaskManagerService, IDisposable
 {
+    private const int MaxTaskCount = 1000;
     private readonly ILogService _log;
     private readonly System.Timers.Timer _checkTimer;
-    private readonly string _tasksFilePath;
+    private readonly object _sync = new();
     private readonly List<TaskItem> _tasks = new();
+    private readonly string? _legacyTasksFilePath;
 
-    /// <summary>任务列表（只读副本）</summary>
-    public IReadOnlyList<TaskItem> Tasks => _tasks.AsReadOnly();
+    public IReadOnlyList<TaskItem> Tasks
+    {
+        get
+        {
+            lock (_sync)
+                return _tasks.ToList();
+        }
+    }
 
-    /// <summary>任务触发事件</summary>
+    public string TasksFilePath { get; }
+
     public event Action<TaskItem>? TaskTriggered;
-
-    /// <summary>任务列表变更事件</summary>
     public event Action? TasksChanged;
 
-    /// <summary>
-    /// 构造函数
-    /// 加载已保存的任务并启动定时检测
-    /// </summary>
     public TaskManagerService(ILogService log)
+        : this(log, null)
+    {
+    }
+
+    public TaskManagerService(ILogService log, string? tasksFilePath)
     {
         _log = log;
 
-        // 任务文件路径
-        _tasksFilePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "工具箱", "tasks.json");
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        TasksFilePath = tasksFilePath ?? Path.Combine(appData, "Toolbox", "tasks.json");
+        _legacyTasksFilePath = tasksFilePath == null ? Path.Combine(appData, "工具箱", "tasks.json") : null;
 
-        // 加载已保存的任务
         LoadTasks();
 
-        // 每秒检测一次任务触发
-        _checkTimer = new System.Timers.Timer(1000);
+        _checkTimer = new System.Timers.Timer(15_000);
         _checkTimer.Elapsed += (_, _) => CheckTaskTriggers();
         _checkTimer.AutoReset = true;
         _checkTimer.Start();
 
-        _log.LogInfo($"任务服务已启动，加载了 {_tasks.Count} 个任务");
+        _log.LogInfo($"任务服务已启动，加载 {_tasks.Count} 个任务，数据文件：{TasksFilePath}");
     }
 
-    /// <summary>
-    /// 从 tasks.json 加载任务
-    /// </summary>
-    private void LoadTasks()
+    public bool AddTask(TaskItem task)
     {
-        try
-        {
-            if (!File.Exists(_tasksFilePath))
-                return;
+        if (task == null) return false;
 
-            var json = File.ReadAllText(_tasksFilePath);
-            var loaded = JsonSerializer.Deserialize<List<TaskItem>>(json);
-            if (loaded != null)
+        lock (_sync)
+        {
+            if (_tasks.Count >= MaxTaskCount)
             {
-                _tasks.Clear();
-                _tasks.AddRange(loaded);
-
-                // 更新每个任务的下次触发时间
-                foreach (var task in _tasks)
-                {
-                    task.NextTriggerTime = task.CalculateNextTriggerTime();
-                }
+                _log.LogWarning($"任务数量已达到上限 {MaxTaskCount}");
+                return false;
             }
+
+            PrepareTask(task, isNew: true);
+            _tasks.Add(task);
         }
-        catch (Exception ex)
-        {
-            _log.LogError("加载任务文件失败", ex);
-        }
+
+        SaveTasks();
+        _log.LogInfo($"任务已添加：{task.Content}");
+        return true;
     }
 
-    /// <summary>
-    /// 保存任务到 tasks.json
-    /// </summary>
+    public void UpdateTask(TaskItem task)
+    {
+        if (task == null || string.IsNullOrWhiteSpace(task.Id)) return;
+
+        lock (_sync)
+        {
+            var index = _tasks.FindIndex(t => t.Id == task.Id);
+            if (index < 0) return;
+
+            PrepareTask(task, isNew: false);
+            if (!ReferenceEquals(_tasks[index], task))
+                _tasks[index] = task;
+        }
+
+        SaveTasks();
+    }
+
+    public void DeleteTask(string taskId)
+    {
+        if (string.IsNullOrWhiteSpace(taskId)) return;
+
+        TaskItem? removed = null;
+        lock (_sync)
+        {
+            removed = _tasks.FirstOrDefault(t => t.Id == taskId);
+            if (removed != null)
+                _tasks.Remove(removed);
+        }
+
+        if (removed == null) return;
+        SaveTasks();
+        _log.LogInfo($"任务已删除：{removed.Content}");
+    }
+
+    public void ToggleComplete(string taskId)
+    {
+        TaskItem? task;
+        lock (_sync)
+        {
+            task = _tasks.FirstOrDefault(t => t.Id == taskId);
+            if (task == null) return;
+
+            task.IsCompleted = !task.IsCompleted;
+            task.CompletedAt = task.IsCompleted ? DateTime.Now : null;
+            task.MarkUpdated();
+        }
+
+        SaveTasks();
+    }
+
+    public void TogglePause(string taskId)
+    {
+        lock (_sync)
+        {
+            var task = _tasks.FirstOrDefault(t => t.Id == taskId);
+            if (task == null) return;
+
+            task.IsPaused = !task.IsPaused;
+            task.MarkUpdated();
+        }
+
+        SaveTasks();
+    }
+
+    public int ClearCompleted()
+    {
+        int count;
+        lock (_sync)
+            count = _tasks.RemoveAll(t => t.IsCompleted);
+
+        if (count > 0)
+        {
+            SaveTasks();
+            _log.LogInfo($"已清除 {count} 个已完成任务");
+        }
+
+        return count;
+    }
+
     public void SaveTasks()
     {
         try
         {
-            var dir = Path.GetDirectoryName(_tasksFilePath)!;
-            if (!Directory.Exists(dir))
+            List<TaskItem> snapshot;
+            lock (_sync)
+                snapshot = _tasks.ToList();
+
+            var dir = Path.GetDirectoryName(TasksFilePath);
+            if (!string.IsNullOrWhiteSpace(dir))
                 Directory.CreateDirectory(dir);
 
             var options = new JsonSerializerOptions
             {
                 WriteIndented = true,
-                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
             };
-            var json = JsonSerializer.Serialize(_tasks, options);
-            File.WriteAllText(_tasksFilePath, json);
 
+            File.WriteAllText(TasksFilePath, JsonSerializer.Serialize(snapshot, options));
             TasksChanged?.Invoke();
         }
         catch (Exception ex)
@@ -109,146 +183,6 @@ public class TaskManagerService : ITaskManagerService
         }
     }
 
-    /// <summary>
-    /// 添加新任务（上限 200 个）
-    /// </summary>
-    /// <returns>添加成功返回 true，超过上限返回 false</returns>
-    public bool AddTask(TaskItem task)
-    {
-        if (_tasks.Count >= 200)
-        {
-            _log.LogWarning("任务数量已达上限 200");
-            return false;
-        }
-
-        task.NextTriggerTime = task.CalculateNextTriggerTime();
-        _tasks.Add(task);
-        SaveTasks();
-        _log.LogInfo($"任务已添加: {task.Content} (ID: {task.Id})");
-        return true;
-    }
-
-    /// <summary>
-    /// 更新已有任务
-    /// </summary>
-    public void UpdateTask(TaskItem task)
-    {
-        var existing = _tasks.FirstOrDefault(t => t.Id == task.Id);
-        if (existing == null) return;
-
-        existing.NextTriggerTime = existing.CalculateNextTriggerTime();
-        SaveTasks();
-    }
-
-    /// <summary>
-    /// 删除任务
-    /// </summary>
-    public void DeleteTask(string taskId)
-    {
-        var task = _tasks.FirstOrDefault(t => t.Id == taskId);
-        if (task == null) return;
-
-        _tasks.Remove(task);
-        SaveTasks();
-        _log.LogInfo($"任务已删除: {task.Content}");
-    }
-
-    /// <summary>
-    /// 标记任务完成/取消完成
-    /// </summary>
-    public void ToggleComplete(string taskId)
-    {
-        var task = _tasks.FirstOrDefault(t => t.Id == taskId);
-        if (task == null) return;
-
-        task.IsCompleted = !task.IsCompleted;
-        if (task.RepeatMode != TaskRepeatMode.Once && !task.IsCompleted)
-        {
-            // 重新激活重复任务，计算下次触发时间
-            task.NextTriggerTime = task.CalculateNextTriggerTime();
-        }
-        SaveTasks();
-    }
-
-    /// <summary>
-    /// 标记任务暂停/恢复
-    /// </summary>
-    public void TogglePause(string taskId)
-    {
-        var task = _tasks.FirstOrDefault(t => t.Id == taskId);
-        if (task == null) return;
-
-        task.IsPaused = !task.IsPaused;
-        if (!task.IsPaused)
-        {
-            task.NextTriggerTime = task.CalculateNextTriggerTime();
-        }
-        SaveTasks();
-    }
-
-    /// <summary>
-    /// 清除所有已完成任务
-    /// </summary>
-    public int ClearCompleted()
-    {
-        int count = _tasks.RemoveAll(t => t.IsCompleted);
-        if (count > 0)
-        {
-            SaveTasks();
-            _log.LogInfo($"已清除 {count} 个已完成任务");
-        }
-        return count;
-    }
-
-    /// <summary>
-    /// 检测任务触发 — 每秒执行一次
-    /// 处理错过触发的任务：重要→补触发，普通→跳过
-    /// </summary>
-    private void CheckTaskTriggers()
-    {
-        var now = DateTime.Now;
-        var triggered = new List<TaskItem>();
-
-        foreach (var task in _tasks)
-        {
-            if (task.IsCompleted || task.IsPaused) continue;
-            if (task.NextTriggerTime > now) continue;
-
-            // 任务已到触发时间
-            triggered.Add(task);
-
-            // 检测是否错过触发（超过 5 分钟）
-            bool isMissed = (now - task.NextTriggerTime).TotalMinutes > 5;
-
-            if (isMissed && task.Importance == TaskImportance.Normal)
-            {
-                // 普通任务错过触发 → 跳过，计算下次时间
-                _log.LogWarning($"普通任务错过触发，已跳过: {task.Content}");
-                task.NextTriggerTime = task.CalculateNextTriggerTime();
-                SaveTasks();
-            }
-            else
-            {
-                // 重要任务 → 补触发
-                task.LastTriggeredAt = now;
-                if (task.RepeatMode != TaskRepeatMode.Once)
-                {
-                    task.NextTriggerTime = task.CalculateNextTriggerTime();
-                }
-                SaveTasks();
-
-                // 触发通知
-                if (isMissed)
-                    _log.LogInfo($"重要任务补触发: {task.Content}");
-
-                TaskTriggered?.Invoke(task);
-            }
-        }
-    }
-
-    /// <summary>
-    /// 播放提示音
-    /// </summary>
     public void PlayAlertSound(TaskItem task)
     {
         try
@@ -257,27 +191,113 @@ public class TaskManagerService : ITaskManagerService
 
             if (task.AlertSound == "CustomWav" && File.Exists(task.AlertSoundPath))
             {
-                var player = new SoundPlayer(task.AlertSoundPath);
+                using var player = new SoundPlayer(task.AlertSoundPath);
                 player.Play();
+                return;
             }
-            else
-            {
-                SystemSounds.Beep.Play();
-            }
+
+            SystemSounds.Exclamation.Play();
         }
         catch (Exception ex)
         {
-            _log.LogError("播放提示音失败", ex);
+            _log.LogError("播放任务提醒音失败", ex);
         }
     }
 
-    /// <summary>
-    /// 获取 DST 夏令时偏移（处理夏令时切换）
-    /// </summary>
-    public static TimeSpan GetDstOffset()
+    public void Dispose()
+    {
+        _checkTimer.Stop();
+        _checkTimer.Dispose();
+    }
+
+    private void LoadTasks()
+    {
+        try
+        {
+            var path = File.Exists(TasksFilePath) ? TasksFilePath :
+                (!string.IsNullOrWhiteSpace(_legacyTasksFilePath) && File.Exists(_legacyTasksFilePath) ? _legacyTasksFilePath : null);
+
+            if (path == null) return;
+
+            var json = File.ReadAllText(path);
+            var loaded = JsonSerializer.Deserialize<List<TaskItem>>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            }) ?? new List<TaskItem>();
+
+            lock (_sync)
+            {
+                _tasks.Clear();
+                foreach (var task in loaded.Where(t => t != null))
+                {
+                    PrepareTask(task, isNew: false);
+                    _tasks.Add(task);
+                }
+            }
+
+            if (!string.Equals(path, TasksFilePath, StringComparison.OrdinalIgnoreCase))
+                SaveTasks();
+        }
+        catch (Exception ex)
+        {
+            _log.LogError("加载任务文件失败", ex);
+        }
+    }
+
+    private void CheckTaskTriggers()
     {
         var now = DateTime.Now;
-        var utc = now.ToUniversalTime();
-        return now - utc;
+        var triggered = new List<TaskItem>();
+        var changed = false;
+
+        lock (_sync)
+        {
+            foreach (var task in _tasks)
+            {
+                if (task.IsCompleted || task.IsPaused || !task.ReminderAt.HasValue)
+                    continue;
+
+                var dueReminder = task.CalculateNextReminderTime(now.AddMilliseconds(-1));
+                if (!dueReminder.HasValue || dueReminder.Value > now)
+                    continue;
+
+                if (task.LastTriggeredAt.HasValue && task.LastTriggeredAt.Value >= dueReminder.Value)
+                    continue;
+
+                task.LastTriggeredAt = now;
+                triggered.Add(task);
+
+                if (task.RepeatMode != TaskRepeatMode.Once)
+                {
+                    task.ReminderAt = task.CalculateNextReminderTime(now);
+                    task.RecalculateNextTriggerTime();
+                }
+
+                task.UpdatedAt = now;
+                changed = true;
+            }
+        }
+
+        foreach (var task in triggered)
+        {
+            _log.LogInfo($"任务提醒触发：{task.Content}");
+            PlayAlertSound(task);
+            TaskTriggered?.Invoke(task);
+        }
+
+        if (changed)
+            SaveTasks();
+    }
+
+    private static void PrepareTask(TaskItem task, bool isNew)
+    {
+        task.NormalizeAfterLoad();
+        if (isNew)
+        {
+            task.CreatedAt = DateTime.Now;
+            task.LastTriggeredAt = null;
+        }
+
+        task.MarkUpdated();
     }
 }

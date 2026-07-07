@@ -159,6 +159,21 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private bool _debugMode;
 
+    [ObservableProperty]
+    private string _agentTokenDataSource = "Local";
+
+    [ObservableProperty]
+    private string _agentTokenApiProvider = "OpenAI";
+
+    [ObservableProperty]
+    private string _agentTokenApiModel = "gpt-5.5";
+
+    [ObservableProperty]
+    private string _agentTokenApiKey = "";
+
+    public string[] AgentTokenDataSourceOptions { get; } = ["Local", "Api"];
+    public string[] AgentTokenApiProviderOptions { get; } = ["OpenAI", "Anthropic"];
+
     // ==================== 通用状态 ====================
 
     /// <summary>设置保存状态</summary>
@@ -201,9 +216,9 @@ public partial class SettingsViewModel : ViewModelBase
         PanelAlwaysOnTop = _settings.PanelAlwaysOnTop;
 
         // 快捷键
-        ScreenshotShortcut = _settings.ScreenshotShortcut;
-        ColorPickerShortcut = _settings.ColorPickerShortcut;
-        AlwaysOnTopShortcut = _settings.AlwaysOnTopShortcut;
+        ScreenshotShortcut = NormalizeGlobalShortcut(_settings.ScreenshotShortcut, "Ctrl+Shift+X");
+        ColorPickerShortcut = NormalizeGlobalShortcut(_settings.ColorPickerShortcut, "Ctrl+Shift+C");
+        AlwaysOnTopShortcut = NormalizeGlobalShortcut(_settings.AlwaysOnTopShortcut, "Ctrl+Shift+T");
 
         // 通知
         NotificationsEnabled = _settings.NotificationsEnabled;
@@ -215,6 +230,10 @@ public partial class SettingsViewModel : ViewModelBase
 
         // 调试模式
         DebugMode = _settings.DebugMode;
+        AgentTokenDataSource = string.IsNullOrWhiteSpace(_settings.AgentTokenDataSource) ? "Local" : _settings.AgentTokenDataSource;
+        AgentTokenApiProvider = string.IsNullOrWhiteSpace(_settings.AgentTokenApiProvider) ? "OpenAI" : _settings.AgentTokenApiProvider;
+        AgentTokenApiModel = string.IsNullOrWhiteSpace(_settings.AgentTokenApiModel) ? "gpt-5.5" : _settings.AgentTokenApiModel;
+        AgentTokenApiKey = _settings.AgentTokenApiKey ?? "";
         _isLoadingSettings = false;
     }
 
@@ -252,6 +271,10 @@ public partial class SettingsViewModel : ViewModelBase
             _settings.ScheduledShutdownNotifyMode = ScheduledShutdownNotifyMode;
             _settings.TaskReminderNotifyMode = TaskReminderNotifyMode;
             _settings.DebugMode = DebugMode;
+            _settings.AgentTokenDataSource = AgentTokenDataSource;
+            _settings.AgentTokenApiProvider = AgentTokenApiProvider;
+            _settings.AgentTokenApiModel = AgentTokenApiModel;
+            _settings.AgentTokenApiKey = AgentTokenApiKey;
 
             // 保存文件
             _config.SaveConfig(_config.SettingsFilePath, _settings);
@@ -347,6 +370,10 @@ public partial class SettingsViewModel : ViewModelBase
     partial void OnPanelAlwaysOnTopChanged(bool value) => SaveSettings();
     partial void OnNotificationsEnabledChanged(bool value) => SaveSettings();
     partial void OnDebugModeChanged(bool value) => SaveSettings();
+    partial void OnAgentTokenDataSourceChanged(string value) => SaveSettings();
+    partial void OnAgentTokenApiProviderChanged(string value) => SaveSettings();
+    partial void OnAgentTokenApiModelChanged(string value) => SaveSettings();
+    partial void OnAgentTokenApiKeyChanged(string value) => SaveSettings();
     partial void OnScheduledCleanupNotifyModeChanged(string value) => SaveSettings();
     partial void OnScheduledShutdownNotifyModeChanged(string value) => SaveSettings();
     partial void OnTaskReminderNotifyModeChanged(string value) => SaveSettings();
@@ -383,6 +410,13 @@ public partial class SettingsViewModel : ViewModelBase
     {
         if (!IsRecordingShortcut) return;
 
+        if (!IsSafeGlobalShortcut(combination))
+        {
+            ShortcutConflictMessage = "全局快捷键必须包含 Ctrl、Alt 或 Win，不能只使用 Shift";
+            StatusMessage = $"快捷键无效: {ShortcutConflictMessage}";
+            return;
+        }
+
         // 冲突检测
         ShortcutConflictMessage = CheckShortcutConflict(combination);
 
@@ -410,6 +444,26 @@ public partial class SettingsViewModel : ViewModelBase
         RecordingTarget = "";
         SaveSettings();
         StatusMessage = $"快捷键已设置为: {combination}";
+    }
+
+    private static string NormalizeGlobalShortcut(string shortcut, string fallback)
+    {
+        return IsSafeGlobalShortcut(shortcut) ? shortcut : fallback;
+    }
+
+    private static bool IsSafeGlobalShortcut(string shortcut)
+    {
+        if (string.IsNullOrWhiteSpace(shortcut))
+            return false;
+
+        var parts = shortcut.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 2)
+            return false;
+
+        return parts.Take(parts.Length - 1).Any(part =>
+            part.Equals("Ctrl", StringComparison.OrdinalIgnoreCase) ||
+            part.Equals("Alt", StringComparison.OrdinalIgnoreCase) ||
+            part.Equals("Win", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>

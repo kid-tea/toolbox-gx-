@@ -175,7 +175,6 @@ public partial class App : Application
         const string files = "📁 文件操作";
         const string system = "⚙️ 系统管理";
         const string productivity = "🎯 日常效率";
-        const string debug = "🔧 调试功能";
 
         nav.NavItems.Add(new NavItem { Name = "C盘清理", Category = storage, Icon = "🧹", ViewType = typeof(CleanupView), RequiresAdmin = false });
         nav.NavItems.Add(new NavItem { Name = "磁盘空间分析", Category = storage, Icon = "📊", ViewType = typeof(DiskAnalyzerView), RequiresAdmin = false });
@@ -196,8 +195,8 @@ public partial class App : Application
         nav.NavItems.Add(new NavItem { Name = "取色器", Category = productivity, Icon = "🎨", ViewType = typeof(ColorPickerView), RequiresAdmin = false });
         nav.NavItems.Add(new NavItem { Name = "窗口置顶", Category = productivity, Icon = "📌", ViewType = typeof(AlwaysOnTopView), RequiresAdmin = false });
 
-        nav.NavItems.Add(new NavItem { Name = "AI Agent 检验（2.0.0 预览）", Category = debug, Icon = "🧪", ViewType = typeof(AgentInspectorView), RequiresAdmin = false, IsPendingOptimization = true });
-        nav.NavItems.Add(new NavItem { Name = "截屏（待优化）", Category = debug, Icon = "📷", ViewType = typeof(ScreenshotView), RequiresAdmin = false, IsPendingOptimization = true });
+        nav.NavItems.Add(new NavItem { Name = "AI Agent 检验", Category = productivity, Icon = "🧪", ViewType = typeof(AgentInspectorView), RequiresAdmin = false });
+        nav.NavItems.Add(new NavItem { Name = "截屏", Category = productivity, Icon = "📷", ViewType = typeof(ScreenshotView), RequiresAdmin = false });
     }
 
     private void OnDispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)

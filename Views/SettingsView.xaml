@@ -405,20 +405,20 @@
                             <StackPanel>
                                 <TextBlock Text="调试模式" FontWeight="Bold" FontSize="14"
                                            Foreground="{StaticResource TextPrimaryBrush}"/>
-                                <TextBlock Text="开启后可访问标记为「待优化」的功能页面（截屏、磁盘空间分析、任务、AI Agent 检验）。"
+                                <TextBlock Text="截屏和 AI Agent 检验已作为正式入口开放；此开关仅保留给后续未稳定功能。"
                                            Foreground="{StaticResource TextMutedBrush}" FontSize="12"
                                            Margin="0,4,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Border>
 
-                        <GroupBox Header="待优化功能访问" Margin="0,0,0,12" Padding="8"
+                        <GroupBox Header="调试功能访问" Margin="0,0,0,12" Padding="8"
                                   Foreground="{StaticResource TextPrimaryBrush}"
                                   BorderBrush="{StaticResource BorderBrush}">
                             <StackPanel>
-                                <CheckBox Content="启用待优化功能（截屏 / 磁盘空间分析 / 任务 / AI Agent 检验）"
+                                <CheckBox Content="启用后续未稳定功能"
                                           IsChecked="{Binding DebugMode}"
                                           Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
-                                <TextBlock Text="注意：这些功能可能存在未修复的缺陷，仅供调试和测试使用。"
+                                <TextBlock Text="注意：正式入口不受此开关影响；后续未稳定功能才会受调试模式控制。"
                                            Foreground="{StaticResource WarningBrush}" FontSize="11"
                                            Margin="0,4,0,0" TextWrapping="Wrap"/>
                             </StackPanel>

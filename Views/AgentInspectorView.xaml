@@ -765,7 +765,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel>
-                                    <TextBlock Text="对话默认折叠，只展示单条对话总用量；展开后查看每次请求的 Input / Cache / Output / Reasoning。"
+                                    <TextBlock Text="对话默认折叠，只展示单条对话 Token 消耗；展开后查看 Input / Cache / Output / Reasoning 明细。"
                                                Foreground="{StaticResource CyberTextBrush}"
                                                FontWeight="SemiBold"/>
                                     <TextBlock Text="日期过滤使用本地日期，并会跳过疑似 Codex 历史快照回放，避免把旧对话算进今天。"

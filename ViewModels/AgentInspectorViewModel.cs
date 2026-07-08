@@ -429,11 +429,9 @@ public partial class AgentInspectorViewModel : ViewModelBase
                     Tokens = group.Sum(record => record.Tokens),
                     InputTokens = group.Sum(record => record.InputTokens),
                     CachedInputTokens = group.Sum(record => record.CachedInputTokens),
-                    OutputTokens = group.Sum(record => record.OutputTokens),
-                    RequestCount = orderedRequests.Count
+                    OutputTokens = group.Sum(record => record.OutputTokens)
                 };
                 summary.TokensText = summary.Tokens.ToString("N0");
-                summary.RequestCountText = summary.RequestCount.ToString("N0");
                 foreach (var request in orderedRequests)
                     summary.Requests.Add(request);
                 return summary;

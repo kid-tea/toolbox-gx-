@@ -170,9 +170,7 @@ public sealed class AgentTokenConversationSummary
     public long InputTokens { get; set; }
     public long CachedInputTokens { get; set; }
     public long OutputTokens { get; set; }
-    public int RequestCount { get; set; }
     public string TokensText { get; set; } = "0";
-    public string RequestCountText { get; set; } = "0";
     public Collection<AgentTokenUsageRecord> Requests { get; } = new();
 }
 

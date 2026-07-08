@@ -72,6 +72,7 @@ dotnet --list-runtimes | findstr Microsoft.WindowsDesktop.App
 
 - 增加多套主题资源，完善主题持久化和设置页配置项。
 - 优化截图、重复文件、任务页、AI Agent Inspector 等页面的排版、对齐和异常处理。
+- 修复对话 Token 明细在窄窗口下被固定列宽裁剪的问题，改为自适应换行布局。
 - 修复 Token 明细弹窗/页面中 WPF 资源类型误用导致的样式错误。
 
 #### 构建与发布

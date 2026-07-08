@@ -789,48 +789,35 @@
                                             <Border BorderBrush="{StaticResource CyberLineBrush}" BorderThickness="0,0,0,1" Padding="0,10">
                                                 <Expander Style="{StaticResource TokenConversationExpanderStyle}" IsExpanded="False">
                                                     <Expander.Header>
-                                                        <Grid Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                              MinHeight="58"
-                                                              Margin="0,0,34,0"
-                                                              ClipToBounds="True">
+                                                        <Grid MinHeight="68"
+                                                              Margin="0,0,30,0"
+                                                              HorizontalAlignment="Stretch">
                                                             <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="116"/>
-                                                                <ColumnDefinition Width="182"/>
-                                                                <ColumnDefinition Width="*" MinWidth="260"/>
-                                                                <ColumnDefinition Width="126"/>
-                                                                <ColumnDefinition Width="300"/>
-                                                                <ColumnDefinition Width="196"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
                                                             </Grid.ColumnDefinitions>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="Auto"/>
+                                                            </Grid.RowDefinitions>
 
-                                                            <StackPanel VerticalAlignment="Center" Margin="0,0,14,0">
-                                                                <TextBlock Text="&#x8F6F;&#x4EF6;" Style="{StaticResource CyberMutedTextStyle}" FontSize="11"/>
-                                                                <TextBlock Text="{Binding Agent}" Foreground="{StaticResource CyberTextBrush}" FontFamily="Consolas" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                                            </StackPanel>
-                                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,18,0">
-                                                                <TextBlock Text="&#x5F00;&#x59CB;&#x65F6;&#x95F4;" Style="{StaticResource CyberMutedTextStyle}" FontSize="11"/>
-                                                                <TextBlock Text="{Binding Date, StringFormat={}{0:yyyy-MM-dd HH:mm}}" Foreground="{StaticResource CyberTextBrush}" FontFamily="Consolas" FontSize="14" FontWeight="SemiBold"/>
-                                                            </StackPanel>
-                                                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,22,0">
+                                                            <StackPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
                                                                 <TextBlock Text="&#x5BF9;&#x8BDD;" Style="{StaticResource CyberMutedTextStyle}" FontSize="11"/>
                                                                 <TextBlock Text="{Binding ConversationTitle}" Foreground="{StaticResource CyberTextBrush}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                                                             </StackPanel>
-                                                            <StackPanel Grid.Column="3" VerticalAlignment="Center" Margin="0,0,18,0">
-                                                                <TextBlock Text="&#x6A21;&#x578B;" Style="{StaticResource CyberMutedTextStyle}" FontSize="11"/>
-                                                                <TextBlock Text="{Binding Model}" Foreground="{StaticResource CyberMutedBrush}" FontSize="14" TextTrimming="CharacterEllipsis"/>
-                                                            </StackPanel>
-                                                            <StackPanel Grid.Column="4" VerticalAlignment="Center" Margin="0,0,20,0">
-                                                                <TextBlock Text="Input / Cache / Output" Style="{StaticResource CyberMutedTextStyle}" FontSize="11"/>
-                                                                <TextBlock Foreground="{StaticResource CyberMutedBrush}" FontFamily="Consolas" FontSize="14" TextTrimming="CharacterEllipsis">
-                                                                    <Run Text="{Binding InputTokens, StringFormat={}{0:N0}}"/>
-                                                                    <Run Text=" / "/>
-                                                                    <Run Text="{Binding CachedInputTokens, StringFormat={}{0:N0}}"/>
-                                                                    <Run Text=" / "/>
-                                                                    <Run Text="{Binding OutputTokens, StringFormat={}{0:N0}}"/>
-                                                                </TextBlock>
-                                                            </StackPanel>
-                                                            <StackPanel Grid.Column="5" VerticalAlignment="Center" HorizontalAlignment="Right">
-                                                                <TextBlock Text="&#x5BF9;&#x8BDD;&#x603B;&#x7528;&#x91CF; / &#x6A21;&#x578B;&#x8BF7;&#x6C42;" Style="{StaticResource CyberMutedTextStyle}" FontSize="11" HorizontalAlignment="Right"/>
-                                                                <TextBlock HorizontalAlignment="Right" TextAlignment="Right">
+
+                                                            <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="1"
+                                                                        Width="210"
+                                                                        MaxWidth="210"
+                                                                        VerticalAlignment="Center"
+                                                                        HorizontalAlignment="Right">
+                                                                <TextBlock Text="&#x5BF9;&#x8BDD;&#x603B;&#x7528;&#x91CF; / &#x6A21;&#x578B;&#x8BF7;&#x6C42;"
+                                                                           Style="{StaticResource CyberMutedTextStyle}"
+                                                                           FontSize="11"
+                                                                           HorizontalAlignment="Right"
+                                                                           TextAlignment="Right"
+                                                                           TextWrapping="Wrap"/>
+                                                                <TextBlock HorizontalAlignment="Right" TextAlignment="Right" TextWrapping="NoWrap">
                                                                     <Run Text="{Binding TokensText}" Foreground="{StaticResource CyberCyanBrush}" FontFamily="Consolas" FontSize="18" FontWeight="Bold"/>
                                                                     <Run Text=" Token" Foreground="{StaticResource CyberCyanBrush}" FontSize="13" FontWeight="SemiBold"/>
                                                                     <Run Text="  ·  " Foreground="{StaticResource CyberMutedBrush}" FontSize="13"/>
@@ -838,6 +825,31 @@
                                                                     <Run Text=" &#x6B21;&#x8BF7;&#x6C42;" Foreground="{StaticResource CyberMutedBrush}" FontSize="12"/>
                                                                 </TextBlock>
                                                             </StackPanel>
+
+                                                            <WrapPanel Grid.Row="1" Grid.Column="0"
+                                                                       Margin="0,8,16,0"
+                                                                       VerticalAlignment="Center">
+                                                                <TextBlock Margin="0,0,16,4" Foreground="{StaticResource CyberMutedBrush}" FontSize="12">
+                                                                    <Run Text="&#x8F6F;&#x4EF6; "/>
+                                                                    <Run Text="{Binding Agent}" FontFamily="Consolas" FontWeight="SemiBold" Foreground="{StaticResource CyberTextBrush}"/>
+                                                                </TextBlock>
+                                                                <TextBlock Margin="0,0,16,4" Foreground="{StaticResource CyberMutedBrush}" FontSize="12">
+                                                                    <Run Text="&#x5F00;&#x59CB; "/>
+                                                                    <Run Text="{Binding Date, StringFormat={}{0:yyyy-MM-dd HH:mm}}" FontFamily="Consolas" FontWeight="SemiBold" Foreground="{StaticResource CyberTextBrush}"/>
+                                                                </TextBlock>
+                                                                <TextBlock Margin="0,0,16,4" Foreground="{StaticResource CyberMutedBrush}" FontSize="12">
+                                                                    <Run Text="&#x6A21;&#x578B; "/>
+                                                                    <Run Text="{Binding Model}" Foreground="{StaticResource CyberTextBrush}"/>
+                                                                </TextBlock>
+                                                                <TextBlock Margin="0,0,16,4" Foreground="{StaticResource CyberMutedBrush}" FontFamily="Consolas" FontSize="12">
+                                                                    <Run Text="Input / Cache / Output "/>
+                                                                    <Run Text="{Binding InputTokens, StringFormat={}{0:N0}}"/>
+                                                                    <Run Text=" / "/>
+                                                                    <Run Text="{Binding CachedInputTokens, StringFormat={}{0:N0}}"/>
+                                                                    <Run Text=" / "/>
+                                                                    <Run Text="{Binding OutputTokens, StringFormat={}{0:N0}}"/>
+                                                                </TextBlock>
+                                                            </WrapPanel>
                                                         </Grid>
                                                     </Expander.Header>
 
